@@ -62,3 +62,38 @@ describe('interruptTask', () => {
     expect(state.schedule.tasks.find((t) => t.id === taskBId)!.status).toBe('paused')
   })
 })
+
+describe('endTask with interruption', () => {
+  beforeEach(() => resetStore())
+
+  it('keeps pausedTaskId when ending an interruption task', () => {
+    useAppStore.getState().startTask('Original Task', 30)
+    const originalId = useAppStore.getState().activeTaskId!
+    useAppStore.getState().interruptTask('Interruption', 15)
+
+    const timerStart = useAppStore.getState().timerStartAt!
+    useAppStore.setState({ timerStartAt: timerStart - 20 * 60000 })
+
+    useAppStore.getState().endTask()
+    const state = useAppStore.getState()
+
+    expect(state.activeTaskId).toBeNull()
+    expect(state.pausedTaskId).toBe(originalId)
+    expect(state.timerStartAt).toBeNull()
+
+    const interruptionTask = state.schedule.tasks.find(
+      (t) => t.title === 'Interruption',
+    )!
+    expect(interruptionTask.status).toBe('completed')
+    expect(interruptionTask.actualDurationMinutes).toBe(20)
+  })
+
+  it('clears all state when ending a normal task', () => {
+    useAppStore.getState().startTask('Normal Task', 30)
+    useAppStore.getState().endTask()
+    const state = useAppStore.getState()
+    expect(state.activeTaskId).toBeNull()
+    expect(state.pausedTaskId).toBeNull()
+    expect(state.timerStartAt).toBeNull()
+  })
+})

@@ -104,7 +104,7 @@ export const useAppStore = create<AppStore>()(
       },
 
       endTask: () => {
-        const { schedule, activeTaskId, timerStartAt } = get()
+        const { schedule, activeTaskId, pausedTaskId, timerStartAt } = get()
         if (!activeTaskId || !timerStartAt) return
 
         const now = new Date()
@@ -122,10 +122,13 @@ export const useAppStore = create<AppStore>()(
           }
         })
 
+        const isInterruption = pausedTaskId != null
+
         set({
           schedule: { ...schedule, tasks: updatedTasks },
           activeTaskId: null,
           timerStartAt: null,
+          pausedTaskId: isInterruption ? pausedTaskId : null,
         })
       },
 
