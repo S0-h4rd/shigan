@@ -1,20 +1,14 @@
 import { describe, expect, it, beforeEach } from 'vitest'
-import { useAppStore } from './useAppStore'
+import { useAppStore, defaultState } from './useAppStore'
 
 function resetStore() {
-  useAppStore.setState({
-    schedule: { date: '2026-05-14', tasks: [], interruptions: [] },
-    activeTaskId: null,
-    pausedTaskId: null,
-    timerStartAt: null,
-    view: 'timeline',
-  })
+  useAppStore.setState(defaultState)
 }
 
 describe('interruptTask', () => {
   beforeEach(() => resetStore())
 
-  it('有 active 任务时，暂停原任务并开始新任务', () => {
+  it('pauses the active task and starts a new interruption task', () => {
     useAppStore.getState().startTask('原任务', 30)
     const state1 = useAppStore.getState()
     const originalId = state1.activeTaskId!
@@ -44,11 +38,27 @@ describe('interruptTask', () => {
     expect(state2.schedule.interruptions[0].newTaskId).toBe(state2.activeTaskId)
   })
 
-  it('无 active 任务时，interruptTask 不执行', () => {
+  it('does nothing when there is no active task', () => {
     useAppStore.getState().interruptTask('紧急 bug', 15)
     const state = useAppStore.getState()
     expect(state.activeTaskId).toBeNull()
     expect(state.pausedTaskId).toBeNull()
     expect(state.schedule.tasks.length).toBe(0)
+  })
+
+  it('overwrites previous paused task when interrupting again', () => {
+    useAppStore.getState().startTask('任务A', 30)
+    const taskAId = useAppStore.getState().activeTaskId!
+    useAppStore.getState().interruptTask('打断B', 15)
+    const taskBId = useAppStore.getState().activeTaskId!
+
+    // Try to interrupt again while B is active
+    useAppStore.getState().interruptTask('打断C', 10)
+    const state = useAppStore.getState()
+
+    // B should be paused now, A is lost (flat model)
+    expect(state.pausedTaskId).toBe(taskBId)
+    expect(state.activeTaskId).not.toBe(taskBId)
+    expect(state.schedule.tasks.find((t) => t.id === taskBId)!.status).toBe('paused')
   })
 })

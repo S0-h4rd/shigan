@@ -1,0 +1,81 @@
+@import "tailwindcss";
+@import "@fontsource-variable/geist/wght.css";
+@import "@fontsource-variable/geist-mono/wght.css";
+
+@theme {
+  /* 状态色 — 计划中 */
+  --color-plan-bg: #E0F2FE;
+  --color-plan-text: #0369A1;
+  --color-plan-border: #7DD3FC;
+
+  /* 状态色 — 进行中 */
+  --color-active-bg: #DCFCE7;
+  --color-active-text: #15803D;
+  --color-active-border: #86EFAC;
+
+  /* 状态色 — 超时 */
+  --color-overtime-bg: #FEF9C3;
+  --color-overtime-text: #A16207;
+  --color-overtime-border: #FDE047;
+
+  /* 状态色 — 插入/打断 */
+  --color-interrupt-bg: #FEE2E2;
+  --color-interrupt-text: #B91C1C;
+  --color-interrupt-border: #FCA5A5;
+
+  /* 状态色 — 完成 */
+  --color-done-bg: #F3F4F6;
+  --color-done-text: #6B7280;
+  --color-done-border: #E5E7EB;
+
+  /* 状态色 — 空白 */
+  --color-empty-bg: #FFFFFF;
+  --color-empty-text: #9CA3AF;
+  --color-empty-border: #E5E7EB;
+
+  /* 中性灰阶 */
+  --color-bg-base: #FFFFFF;
+  --color-bg-subtle: #F9FAFB;
+  --color-bg-muted: #F3F4F6;
+  --color-border-light: #E5E7EB;
+  --color-border-medium: #D1D5DB;
+  --color-text-placeholder: #9CA3AF;
+  --color-text-muted: #6B7280;
+  --color-text-secondary: #374151;
+  --color-text-primary: #111827;
+
+  /* Dark mode 基础色 */
+  --color-dark-bg-base: #0B0F19;
+  --color-dark-bg-subtle: #111827;
+  --color-dark-text-primary: #F9FAFB;
+  --color-dark-text-secondary: #E5E7EB;
+  --color-dark-text-muted: #9CA3AF;
+
+  /* 字体 */
+  --font-sans: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'Geist Mono', 'JetBrains Mono', 'Fira Code', monospace;
+
+  /* 圆角（覆盖 Tailwind 默认值以匹配 DESIGN.md） */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+}
+
+/* 全局基础样式 */
+html {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: var(--color-bg-base);
+  color: var(--color-text-primary);
+}
+
+/* 等宽数字，确保时间对齐 */
+.font-tabular {
+  font-variant-numeric: tabular-nums;
+}

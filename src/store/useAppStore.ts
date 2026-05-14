@@ -200,3 +200,11 @@ export const useAppStore = create<AppStore>()(
     },
   ),
 )
+
+export const defaultState = {
+  schedule: emptySchedule(todayKey()),
+  activeTaskId: null,
+  pausedTaskId: null,
+  timerStartAt: null,
+  view: 'timeline' as ViewMode,
+}

@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>时间感知 — 设计系统预览</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* === 色彩系统 === */
+      --bg-base: #FFFFFF;
+      --bg-subtle: #F9FAFB;
+      --bg-muted: #F3F4F6;
+      --surface: #FFFFFF;
+      --surface-raised: #F9FAFB;
+
+      --text-primary: #111827;
+      --text-secondary: #374151;
+      --text-muted: #6B7280;
+      --text-placeholder: #9CA3AF;
+
+      --border-light: #E5E7EB;
+      --border-medium: #D1D5DB;
+
+      /* 状态色（背景 / 文字 / 边框） */
+      --status-scheduled-bg: #E0F2FE;
+      --status-scheduled-text: #0369A1;
+      --status-scheduled-border: #7DD3FC;
+
+      --status-active-bg: #DCFCE7;
+      --status-active-text: #15803D;
+      --status-active-border: #86EFAC;
+
+      --status-overtime-bg: #FEF9C3;
+      --status-overtime-text: #A16207;
+      --status-overtime-border: #FDE047;
+
+      --status-interruption-bg: #FEE2E2;
+      --status-interruption-text: #B91C1C;
+      --status-interruption-border: #FCA5A5;
+
+      --status-completed-bg: #F3F4F6;
+      --status-completed-text: #6B7280;
+      --status-completed-border: #E5E7EB;
+
+      --status-empty-bg: #FFFFFF;
+      --status-empty-text: #9CA3AF;
+      --status-empty-border: #E5E7EB;
+
+      /* 字体 */
+      --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --font-mono: 'JetBrains Mono', 'Geist Mono', monospace;
+
+      /* 间距 */
+      --space-1: 2px;
+      --space-2: 4px;
+      --space-3: 8px;
+      --space-4: 12px;
+      --space-5: 16px;
+      --space-6: 24px;
+      --space-7: 32px;
+      --space-8: 48px;
+
+      /* 圆角 */
+      --radius-sm: 4px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 16px;
+      --radius-full: 9999px;
+    }
+
+    [data-theme="dark"] {
+      --bg-base: #0B0F19;
+      --bg-subtle: #111827;
+      --bg-muted: #1F2937;
+      --surface: #111827;
+      --surface-raised: #1F2937;
+
+      --text-primary: #F9FAFB;
+      --text-secondary: #E5E7EB;
+      --text-muted: #9CA3AF;
+      --text-placeholder: #6B7280;
+
+      --border-light: #374151;
+      --border-medium: #4B5563;
+
+      --status-scheduled-bg: #082F49;
+      --status-scheduled-text: #7DD3FC;
+      --status-scheduled-border: #0369A1;
+
+      --status-active-bg: #052E16;
+      --status-active-text: #86EFAC;
+      --status-active-border: #15803D;
+
+      --status-overtime-bg: #422006;
+      --status-overtime-text: #FDE047;
+      --status-overtime-border: #A16207;
+
+      --status-interruption-bg: #450A0A;
+      --status-interruption-text: #FCA5A5;
+      --status-interruption-border: #B91C1C;
+
+      --status-completed-bg: #1F2937;
+      --status-completed-text: #9CA3AF;
+      --status-completed-border: #374151;
+
+      --status-empty-bg: #111827;
+      --status-empty-text: #6B7280;
+      --status-empty-border: #374151;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--bg-base);
+      color: var(--text-primary);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: var(--space-6);
+    }
+
+    h1, h2, h3 {
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    h1 { font-size: 32px; line-height: 1.2; }
+    h2 { font-size: 24px; line-height: 1.3; margin-top: var(--space-8); margin-bottom: var(--space-5); }
+    h3 { font-size: 16px; line-height: 1.4; margin-top: var(--space-6); margin-bottom: var(--space-3); color: var(--text-secondary); }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-top: var(--space-2);
+    }
+
+    /* === Hero === */
+    .hero {
+      text-align: center;
+      padding: var(--space-8) 0;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .hero-time {
+      font-family: var(--font-mono);
+      font-size: 48px;
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.03em;
+      color: var(--text-primary);
+      margin: var(--space-5) 0;
+    }
+
+    .hero-tagline {
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    /* === 主题切换 === */
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--surface-raised);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-lg);
+      padding: 8px 16px;
+      cursor: pointer;
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      transition: all 0.15s ease;
+      z-index: 100;
+    }
+
+    .theme-toggle:hover {
+      border-color: var(--border-medium);
+      background: var(--bg-muted);
+    }
+
+    /* === 字体样张 === */
+    .font-section {
+      margin-top: var(--space-8);
+    }
+
+    .font-card {
+      background: var(--surface);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-lg);
+      padding: var(--space-6);
+      margin-bottom: var(--space-5);
+    }
+
+    .font-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-placeholder);
+      margin-bottom: var(--space-3);
+    }
+
+    .font-sample-body {
+      font-family: var(--font-body);
+      font-size: 16px;
+      line-height: 1.6;
+      color: var(--text-primary);
+    }
+
+    .font-sample-mono {
+      font-family: var(--font-mono);
+      font-size: 16px;
+      line-height: 1.6;
+      color: var(--text-primary);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .font-scale {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+      margin-top: var(--space-5);
+    }
+
+    .font-scale-row {
+      display: flex;
+      align-items: baseline;
+      gap: var(--space-4);
+    }
+
+    .font-scale-size {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-placeholder);
+      min-width: 48px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .font-scale-text {
+      color: var(--text-primary);
+    }
+
+    /* === 色彩系统 === */
+    .color-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: var(--space-4);
+      margin-top: var(--space-4);
+    }
+
+    .color-swatch {
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      border: 1px solid var(--border-light);
+    }
+
+    .color-swatch-top {
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 600;
+      font-family: var(--font-mono);
+    }
+
+    .color-swatch-info {
+      padding: var(--space-3);
+      background: var(--surface);
+    }
+
+    .color-swatch-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .color-swatch-hex {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-placeholder);
+      margin-top: 2px;
+    }
+
+    /* === 组件样例 === */
+    .component-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: var(--space-5);
+      margin-top: var(--space-5);
+    }
+
+    .component-card {
+      background: var(--surface);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-lg);
+      padding: var(--space-5);
+    }
+
+    .component-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-placeholder);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: var(--space-4);
+    }
+
+    /* 按钮 */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 16px;
+      border-radius: var(--radius-lg);
+      font-size: 14px;
+      font-weight: 500;
+      font-family: var(--font-body);
+      border: none;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .btn:active { transform: scale(0.97); }
+
+    .btn-primary {
+      background: var(--text-primary);
+      color: var(--bg-base);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1px solid var(--border-light);
+    }
+
+    /* 任务块 */
+    .task-block {
+      border-radius: var(--radius-md);
+      padding: var(--space-4);
+      margin-bottom: var(--space-3);
+      border: 1px solid transparent;
+      font-size: 14px;
+    }
+
+    .task-block .task-title {
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .task-block .task-meta {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      margin-top: 4px;
+      opacity: 0.8;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .task-scheduled {
+      background: var(--status-scheduled-bg);
+      color: var(--status-scheduled-text);
+      border-color: var(--status-scheduled-border);
+    }
+
+    .task-active {
+      background: var(--status-active-bg);
+      color: var(--status-active-text);
+      border-color: var(--status-active-border);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .task-overtime {
+      background: var(--status-overtime-bg);
+      color: var(--status-overtime-text);
+      border-color: var(--status-overtime-border);
+    }
+
+    .task-interruption {
+      background: var(--status-interruption-bg);
+      color: var(--status-interruption-text);
+      border-color: var(--status-interruption-border);
+    }
+
+    .task-completed {
+      background: var(--status-completed-bg);
+      color: var(--status-completed-text);
+      border-color: var(--status-completed-border);
+    }
+
+    .task-empty {
+      background: var(--status-empty-bg);
+      color: var(--status-empty-text);
+      border-style: dashed;
+      border-color: var(--status-empty-border);
+    }
+
+    /* 底部任务栏 */
+    .active-bar {
+      background: var(--surface-raised);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-xl);
+      padding: var(--space-4) var(--space-5);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+
+    .active-bar-left {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+
+    .active-bar-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: var(--radius-full);
+      background: var(--status-active-text);
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.2); }
+    }
+
+    .active-bar-title {
+      font-weight: 500;
+      font-size: 14px;
+    }
+
+    .active-bar-time {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .active-bar-actions {
+      display: flex;
+      gap: var(--space-2);
+    }
+
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 12px;
+      border-radius: var(--radius-md);
+    }
+
+    /* 时间线 Mockup */
+    .timeline-mockup {
+      background: var(--surface);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+
+    .timeline-header {
+      padding: var(--space-4) var(--space-5);
+      border-bottom: 1px solid var(--border-light);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .timeline-header h4 {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .timeline-body {
+      padding: var(--space-4) var(--space-5);
+    }
+
+    .timeline-row {
+      display: flex;
+      gap: var(--space-4);
+      margin-bottom: var(--space-3);
+      align-items: flex-start;
+    }
+
+    .timeline-hour {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-placeholder);
+      width: 32px;
+      text-align: right;
+      flex-shrink: 0;
+      padding-top: 10px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .timeline-content {
+      flex: 1;
+    }
+
+    .timeline-content .task-block {
+      margin-bottom: 0;
+    }
+
+    .timeline-empty-slot {
+      padding: var(--space-3);
+      border: 1px dashed var(--border-light);
+      border-radius: var(--radius-md);
+      color: var(--text-placeholder);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    /* 快捷按钮 */
+    .quick-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+      margin-top: var(--space-4);
+      justify-content: center;
+    }
+
+    .quick-chip {
+      padding: 8px 14px;
+      border-radius: var(--radius-full);
+      font-size: 13px;
+      font-weight: 500;
+      border: 1px solid var(--border-light);
+      background: var(--bg-subtle);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .quick-chip:hover {
+      background: var(--bg-muted);
+      border-color: var(--border-medium);
+    }
+
+    /* === 间距标尺 === */
+    .spacing-scale {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+      margin-top: var(--space-4);
+    }
+
+    .spacing-row {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+    }
+
+    .spacing-visual {
+      background: var(--text-primary);
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    .spacing-label {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-muted);
+      min-width: 80px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* === 响应式 === */
+    @media (max-width: 640px) {
+      .container { padding: var(--space-5); }
+      h1 { font-size: 28px; }
+      h2 { font-size: 20px; }
+      .hero-time { font-size: 36px; }
+      .component-grid { grid-template-columns: 1fr; }
+      .color-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .section-divider {
+      border: none;
+      border-top: 1px solid var(--border-light);
+      margin: var(--space-8) 0;
+    }
+  </style>
+</head>
+<body>
+  <button class="theme-toggle" onclick="toggleTheme()" aria-label="切换明暗主题">
+    <span id="theme-label">暗色模式</span>
+  </button>
+
+  <div class="container">
+    <!-- Hero -->
+    <section class="hero">
+      <h1>时间感知</h1>
+      <p class="subtitle">设计系统预览</p>
+      <div class="hero-time">10:23:45</div>
+      <p class="hero-tagline">一天的河流，清晰可见</p>
+    </section>
+
+    <!-- 字体样张 -->
+    <section class="font-section">
+      <h2>字体 Typography</h2>
+      <p class="subtitle">Geist（正文/UI）+ Geist Mono（数据/时间）</p>
+
+      <div class="font-card">
+        <div class="font-label">Body / UI — Geist Sans</div>
+        <div class="font-sample-body">
+          时间不是表格，是河流。每一个任务都是一块石头，让水流有了形状。当你开始记录，你会惊讶地发现——原来一天中"空白"的时间，远比想象中多。
+        </div>
+        <div class="font-scale">
+          <div class="font-scale-row">
+            <span class="font-scale-size">32px</span>
+            <span class="font-scale-text" style="font-size:32px;font-weight:600;">今日时间线</span>
+          </div>
+          <div class="font-scale-row">
+            <span class="font-scale-size">24px</span>
+            <span class="font-scale-text" style="font-size:24px;font-weight:600;">写代码</span>
+          </div>
+          <div class="font-scale-row">
+            <span class="font-scale-size">16px</span>
+            <span class="font-scale-text" style="font-size:16px;">进行中，剩余 23 分钟</span>
+          </div>
+          <div class="font-scale-row">
+            <span class="font-scale-size">14px</span>
+            <span class="font-scale-text" style="font-size:14px;color:var(--text-muted);">计划 5h · 实际 4.5h · 空白 3h</span>
+          </div>
+          <div class="font-scale-row">
+            <span class="font-scale-size">12px</span>
+            <span class="font-scale-text" style="font-size:12px;color:var(--text-placeholder);">Caption / 标签文字</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="font-card">
+        <div class="font-label">Data / Time / Code — Geist Mono（Tabular Nums）</div>
+        <div class="font-sample-mono">
+          09:00 — 晨会开始<br>
+          10:00 — 写代码（23:45 剩余）<br>
+          12:00 — 午饭
+        </div>
+        <div class="font-scale" style="margin-top:var(--space-5);">
+          <div class="font-scale-row">
+            <span class="font-scale-size">32px</span>
+            <span class="font-scale-text" style="font-size:32px;font-family:var(--font-mono);font-weight:500;font-variant-numeric:tabular-nums;">23:45</span>
+          </div>
+          <div class="font-scale-row">
+            <span class="font-scale-size">16px</span>
+            <span class="font-scale-text" style="font-size:16px;font-family:var(--font-mono);font-variant-numeric:tabular-nums;">10:23 — 12:00（97 min）</span>
+          </div>
+          <div class="font-scale-row">
+            <span class="font-scale-size">14px</span>
+            <span class="font-scale-text" style="font-size:14px;font-family:var(--font-mono);color:var(--text-muted);font-variant-numeric:tabular-nums;">计划 5h | 实际 4.5h | 打断 1.5h</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <hr class="section-divider">
+
+    <!-- 色彩系统 -->
+    <section>
+      <h2>色彩系统 Color</h2>
+      <p class="subtitle">5 色语义状态 + 中性灰阶，浅色背景 / 深色文字，对比度 ≥ 4.5:1</p>
+
+      <h3>状态色 Status Colors</h3>
+      <div class="color-grid">
+        <div class="color-swatch">
+          <div class="color-swatch-top" style="background:#E0F2FE;color:#0369A1;">○ 计划中</div>
+          <div class="color-swatch-info">
+            <div class="color-swatch-name">计划中 Scheduled</div>
+            <div class="color-swatch-hex">#E0F2FE / #0369A1</div>
+          </div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-swatch-top" style="background:#DCFCE7;color:#15803D;">▶ 进行中</div>
+          <div class="color-swatch-info">
+            <div class="color-swatch-name">进行中 Active</div>
+            <div class="color-swatch-hex">#DCFCE7 / #15803D</div>
+          </div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-swatch-top" style="background:#FEF9C3;color:#A16207;">! 超时</div>
+          <div class="color-swatch-info">
+            <div class="color-swatch-name">超时 Overtime</div>
+            <div class="color-swatch-hex">#FEF9C3 / #A16207</div>
+          </div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-swatch-top" style="background:#FEE2E2;color:#B91C1C;">⏸ 插入</div>
+          <div class="color-swatch-info">
+            <div class="color-swatch-name">打断 Interruption</div>
+            <div class="color-swatch-hex">#FEE2E2 / #B91C1C</div>
+          </div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-swatch-top" style="background:#F3F4F6;color:#6B7280;">✓ 完成</div>
+          <div class="color-swatch-info">
+            <div class="color-swatch-name">完成 Completed</div>
+            <div class="color-swatch-hex">#F3F4F6 / #6B7280</div>
+          </div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-swatch-top" style="background:#FFFFFF;color:#9CA3AF;border:1px dashed #E5E7EB;">空白</div>
+          <div class="color-swatch-info">
+            <div class="color-swatch-name">空白 Empty</div>
+            <div class="color-swatch-hex">#FFFFFF / #9CA3AF</div>
+          </div>
+        </div>
+      </div>
+
+      <h3>中性灰阶 Neutrals</h3>
+      <div class="color-grid">
+        <div class="color-swatch">
+          <div class="color-swatch-top" style="background:#F9FAFB;color:#111827;"></div>
+          <div class="color-swatch-info">
+            <div class="color-swatch-name">bg-subtle</div>
+            <div class="color-swatch-hex">#F9FAFB</div>
+          </div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-swatch-top" style="background:#F3F4F6;color:#111827;"></div>
+          <div class="color-swatch-info">
+            <div class="color-swatch-name">bg-muted</div>
+            <div class="color-swatch-hex">#F3F4F6</div>
+          </div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-swatch-top" style="background:#E5E7EB;color:#111827;"></div>
+          <div class="color-swatch-info">
+            <div class="color-swatch-name">border-light</div>
+            <div class="color-swatch-hex">#E5E7EB</div>
+          </div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-swatch-top" style="background:#9CA3AF;color:#FFFFFF;"></div>
+          <div class="color-swatch-info">
+            <div class="color-swatch-name">text-placeholder</div>
+            <div class="color-swatch-hex">#9CA3AF</div>
+          </div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-swatch-top" style="background:#6B7280;color:#FFFFFF;"></div>
+          <div class="color-swatch-info">
+            <div class="color-swatch-name">text-muted</div>
+            <div class="color-swatch-hex">#6B7280</div>
+          </div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-swatch-top" style="background:#374151;color:#FFFFFF;"></div>
+          <div class="color-swatch-info">
+            <div class="color-swatch-name">text-secondary</div>
+            <div class="color-swatch-hex">#374151</div>
+          </div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-swatch-top" style="background:#111827;color:#FFFFFF;"></div>
+          <div class="color-swatch-info">
+            <div class="color-swatch-name">text-primary</div>
+            <div class="color-swatch-hex">#111827</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <hr class="section-divider">
+
+    <!-- 组件样例 -->
+    <section>
+      <h2>组件样例 Components</h2>
+      <p class="subtitle">真实产品界面中的元素渲染</p>
+
+      <div class="component-grid">
+        <div class="component-card">
+          <div class="component-title">Buttons</div>
+          <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-start;">
+            <button class="btn btn-primary">+ 开始新任务</button>
+            <button class="btn btn-ghost">取消</button>
+            <button class="btn btn-primary" style="background:var(--status-active-text);">结束任务</button>
+          </div>
+        </div>
+
+        <div class="component-card">
+          <div class="component-title">Task Blocks</div>
+          <div class="task-block task-scheduled">
+            <div class="task-title">○ 晨会</div>
+            <div class="task-meta">计划 30 min</div>
+          </div>
+          <div class="task-block task-active">
+            <div class="task-title">▶ 写代码</div>
+            <div class="task-meta">23:45 剩余</div>
+          </div>
+          <div class="task-block task-interruption">
+            <div class="task-title">⏸ 紧急 bug</div>
+            <div class="task-meta">15 min</div>
+          </div>
+          <div class="task-block task-empty">
+            <div class="task-title">11:00 — 未记录</div>
+            <div class="task-meta">点击记录</div>
+          </div>
+        </div>
+
+        <div class="component-card">
+          <div class="component-title">Active Task Bar</div>
+          <div class="active-bar">
+            <div class="active-bar-left">
+              <div class="active-bar-indicator"></div>
+              <span class="active-bar-title">写代码</span>
+            </div>
+            <span class="active-bar-time">23:45</span>
+            <div class="active-bar-actions">
+              <button class="btn btn-ghost btn-sm">结束</button>
+              <button class="btn btn-ghost btn-sm">插入</button>
+            </div>
+          </div>
+          <p style="font-size:12px;color:var(--text-placeholder);margin-top:12px;">底部固定，类似音乐播放器</p>
+        </div>
+
+        <div class="component-card">
+          <div class="component-title">Quick Chips</div>
+          <div class="quick-actions" style="justify-content:flex-start;">
+            <span class="quick-chip">深度工作</span>
+            <span class="quick-chip">会议</span>
+            <span class="quick-chip">休息</span>
+            <span class="quick-chip">上厕所</span>
+            <span class="quick-chip">喝水</span>
+            <span class="quick-chip">刷手机</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <hr class="section-divider">
+
+    <!-- 产品界面 Mockup -->
+    <section>
+      <h2>界面 Mockup</h2>
+      <p class="subtitle">移动优先时间线视图（400px 宽度模拟手机）</p>
+
+      <div class="timeline-mockup">
+        <div class="timeline-header">
+          <h4>今天</h4>
+          <span style="font-size:13px;color:var(--text-muted);">报告</span>
+        </div>
+        <div class="timeline-body">
+          <div class="timeline-row">
+            <div class="timeline-hour">9</div>
+            <div class="timeline-content">
+              <div class="task-block task-scheduled">
+                <div class="task-title">○ 晨会</div>
+                <div class="task-meta">计划 30 min</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="timeline-row">
+            <div class="timeline-hour">10</div>
+            <div class="timeline-content">
+              <div class="task-block task-active">
+                <div class="task-title">▶ 写代码</div>
+                <div class="task-meta">23:45 剩余</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="timeline-row">
+            <div class="timeline-hour">11</div>
+            <div class="timeline-content">
+              <div class="timeline-empty-slot">~~~~~~~~~~~~ 未记录 — 点击记录 ~~~~~~~~~~~~</div>
+            </div>
+          </div>
+
+          <div class="timeline-row">
+            <div class="timeline-hour">12</div>
+            <div class="timeline-content">
+              <div class="task-block task-interruption">
+                <div class="task-title">⏸ 吃午饭</div>
+                <div class="task-meta">临时 45 min</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="timeline-row">
+            <div class="timeline-hour">13</div>
+            <div class="timeline-content">
+              <div class="task-block task-completed">
+                <div class="task-title">✓ 回复邮件</div>
+                <div class="task-meta">实际 20 min</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="quick-actions">
+            <span class="quick-chip">+ 开始新任务</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="timeline-mockup" style="margin-top:var(--space-6);max-width:400px;">
+        <div class="timeline-header">
+          <h4>今日报告</h4>
+          <span style="font-size:13px;color:var(--text-muted);">&lt; 返回</span>
+        </div>
+        <div class="timeline-body">
+          <div style="font-family:var(--font-mono);font-size:14px;color:var(--text-secondary);margin-bottom:var(--space-4);font-variant-numeric:tabular-nums;">
+            计划 5h | 实际 4.5h<br>
+            打断 1.5h | 空白 3h
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:var(--space-5);">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="width:80px;font-size:13px;color:var(--text-secondary);">深度工作</div>
+              <div style="flex:1;height:16px;background:var(--status-active-bg);border-radius:4px;position:relative;">
+                <div style="position:absolute;left:8px;top:0;font-size:11px;color:var(--status-active-text);font-family:var(--font-mono);line-height:16px;">███ 3h</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="width:80px;font-size:13px;color:var(--text-secondary);">会议</div>
+              <div style="flex:1;height:16px;background:var(--status-scheduled-bg);border-radius:4px;position:relative;">
+                <div style="position:absolute;left:8px;top:0;font-size:11px;color:var(--status-scheduled-text);font-family:var(--font-mono);line-height:16px;">██ 1.5h</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="width:80px;font-size:13px;color:var(--text-secondary);">打断</div>
+              <div style="flex:1;height:16px;background:var(--status-interruption-bg);border-radius:4px;position:relative;">
+                <div style="position:absolute;left:8px;top:0;font-size:11px;color:var(--status-interruption-text);font-family:var(--font-mono);line-height:16px;">█ 1.5h</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="width:80px;font-size:13px;color:var(--text-secondary);">空白</div>
+              <div style="flex:1;height:16px;background:var(--bg-muted);border-radius:4px;position:relative;border:1px dashed var(--border-light);">
+                <div style="position:absolute;left:8px;top:0;font-size:11px;color:var(--text-muted);font-family:var(--font-mono);line-height:16px;">███ 3h</div>
+              </div>
+            </div>
+          </div>
+          <div style="font-size:13px;color:var(--text-muted);line-height:1.8;">
+            被打断 4 次<br>
+            计划调整后推 2 次<br><br>
+            主要打断来源：<br>
+            Slack 3次 (45min)<br>
+            会议超时 1次 (30min)
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <hr class="section-divider">
+
+    <!-- 间距系统 -->
+    <section>
+      <h2>间距 Spacing</h2>
+      <p class="subtitle">4px 基准网格，Comfortable density</p>
+      <div class="spacing-scale">
+        <div class="spacing-row">
+          <div class="spacing-label">2px (space-1)</div>
+          <div class="spacing-visual" style="width:2px;height:16px;"></div>
+        </div>
+        <div class="spacing-row">
+          <div class="spacing-label">4px (space-2)</div>
+          <div class="spacing-visual" style="width:4px;height:16px;"></div>
+        </div>
+        <div class="spacing-row">
+          <div class="spacing-label">8px (space-3)</div>
+          <div class="spacing-visual" style="width:8px;height:16px;"></div>
+        </div>
+        <div class="spacing-row">
+          <div class="spacing-label">12px (space-4)</div>
+          <div class="spacing-visual" style="width:12px;height:16px;"></div>
+        </div>
+        <div class="spacing-row">
+          <div class="spacing-label">16px (space-5)</div>
+          <div class="spacing-visual" style="width:16px;height:16px;"></div>
+        </div>
+        <div class="spacing-row">
+          <div class="spacing-label">24px (space-6)</div>
+          <div class="spacing-visual" style="width:24px;height:16px;"></div>
+        </div>
+        <div class="spacing-row">
+          <div class="spacing-label">32px (space-7)</div>
+          <div class="spacing-visual" style="width:32px;height:16px;"></div>
+        </div>
+        <div class="spacing-row">
+          <div class="spacing-label">48px (space-8)</div>
+          <div class="spacing-visual" style="width:48px;height:16px;"></div>
+        </div>
+      </div>
+    </section>
+
+    <hr class="section-divider">
+
+    <!-- 布局与圆角 -->
+    <section>
+      <h2>布局 & 圆角</h2>
+      <div class="component-grid">
+        <div class="component-card">
+          <div class="component-title">Border Radius</div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div style="width:48px;height:24px;background:var(--text-primary);border-radius:4px;"></div>
+              <span style="font-family:var(--font-mono);font-size:12px;color:var(--text-muted);">sm: 4px</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div style="width:48px;height:24px;background:var(--text-primary);border-radius:8px;"></div>
+              <span style="font-family:var(--font-mono);font-size:12px;color:var(--text-muted);">md: 8px — 任务块</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div style="width:48px;height:24px;background:var(--text-primary);border-radius:12px;"></div>
+              <span style="font-family:var(--font-mono);font-size:12px;color:var(--text-muted);">lg: 12px — 按钮</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div style="width:48px;height:24px;background:var(--text-primary);border-radius:16px;"></div>
+              <span style="font-family:var(--font-mono);font-size:12px;color:var(--text-muted);">xl: 16px — 弹窗/底部栏</span>
+            </div>
+          </div>
+        </div>
+        <div class="component-card">
+          <div class="component-title">断点 Breakpoints</div>
+          <div style="font-size:14px;color:var(--text-secondary);line-height:2;">
+            <div style="font-family:var(--font-mono);font-size:12px;color:var(--text-muted);">&lt; 640px</div>
+            <div>单列，底部固定操作栏</div>
+            <div style="font-family:var(--font-mono);font-size:12px;color:var(--text-muted);margin-top:8px;">640–1024px</div>
+            <div>时间线居中，最大 480px</div>
+            <div style="font-family:var(--font-mono);font-size:12px;color:var(--text-muted);margin-top:8px;">&gt; 1024px</div>
+            <div>左 60% 时间线，右 40% 报告</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <hr class="section-divider">
+
+    <!-- 无障碍 -->
+    <section style="margin-bottom:var(--space-8);">
+      <h2>无障碍 Accessibility</h2>
+      <div class="component-grid">
+        <div class="component-card">
+          <div class="component-title">Color + Icon</div>
+          <div style="font-size:14px;color:var(--text-secondary);line-height:2;">
+            计划中 ○ · 进行中 ▶<br>
+            超时 ! · 插入 ⏸<br>
+            完成 ✓<br><br>
+            <span style="font-size:12px;color:var(--text-placeholder);">色盲用户可凭图标区分状态</span>
+          </div>
+        </div>
+        <div class="component-card">
+          <div class="component-title">Contrast</div>
+          <div style="font-size:14px;color:var(--text-secondary);line-height:2;">
+            文字与背景 ≥ 4.5:1<br>
+            深绿 #15803D 在浅绿 #DCFCE7 上：<span style="font-weight:600;color:var(--status-active-text);">4.6:1 ✓</span><br><br>
+            <span style="font-size:12px;color:var(--text-placeholder);">WCAG AA 达标</span>
+          </div>
+        </div>
+        <div class="component-card">
+          <div class="component-title">Touch Targets</div>
+          <div style="font-size:14px;color:var(--text-secondary);line-height:2;">
+            可点击区域最小 44×44px<br>
+            任务块高度最小 48px<br><br>
+            <span style="font-size:12px;color:var(--text-placeholder);">移动一手可用</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    function toggleTheme() {
+      const html = document.documentElement;
+      const label = document.getElementById('theme-label');
+      if (html.getAttribute('data-theme') === 'dark') {
+        html.removeAttribute('data-theme');
+        label.textContent = '暗色模式';
+      } else {
+        html.setAttribute('data-theme', 'dark');
+        label.textContent = '亮色模式';
+      }
+    }
+  </script>
+</body>
+</html>
