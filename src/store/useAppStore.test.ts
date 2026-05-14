@@ -9,7 +9,7 @@ describe('interruptTask', () => {
   beforeEach(() => resetStore())
 
   it('pauses the active task and starts a new interruption task', () => {
-    useAppStore.getState().startTask('原任务', 30)
+    useAppStore.getState().startTask('Original Task', 30)
     const state1 = useAppStore.getState()
     const originalId = state1.activeTaskId!
     expect(state1.pausedTaskId).toBeNull()
@@ -17,7 +17,7 @@ describe('interruptTask', () => {
     const timerStart = state1.timerStartAt!
     useAppStore.setState({ timerStartAt: timerStart - 10 * 60000 })
 
-    useAppStore.getState().interruptTask('紧急 bug', 15)
+    useAppStore.getState().interruptTask('Urgent Bug', 15)
     const state2 = useAppStore.getState()
 
     expect(state2.pausedTaskId).toBe(originalId)
@@ -30,7 +30,7 @@ describe('interruptTask', () => {
 
     const newTask = state2.schedule.tasks.find((t) => t.id === state2.activeTaskId!)!
     expect(newTask.status).toBe('active')
-    expect(newTask.title).toBe('紧急 bug')
+    expect(newTask.title).toBe('Urgent Bug')
     expect(newTask.plannedDurationMinutes).toBe(15)
 
     expect(state2.schedule.interruptions.length).toBe(1)
@@ -39,7 +39,7 @@ describe('interruptTask', () => {
   })
 
   it('does nothing when there is no active task', () => {
-    useAppStore.getState().interruptTask('紧急 bug', 15)
+    useAppStore.getState().interruptTask('Urgent Bug', 15)
     const state = useAppStore.getState()
     expect(state.activeTaskId).toBeNull()
     expect(state.pausedTaskId).toBeNull()
@@ -47,13 +47,13 @@ describe('interruptTask', () => {
   })
 
   it('overwrites previous paused task when interrupting again', () => {
-    useAppStore.getState().startTask('任务A', 30)
+    useAppStore.getState().startTask('Task A', 30)
     const taskAId = useAppStore.getState().activeTaskId!
-    useAppStore.getState().interruptTask('打断B', 15)
+    useAppStore.getState().interruptTask('Interruption B', 15)
     const taskBId = useAppStore.getState().activeTaskId!
 
     // Try to interrupt again while B is active
-    useAppStore.getState().interruptTask('打断C', 10)
+    useAppStore.getState().interruptTask('Interruption C', 10)
     const state = useAppStore.getState()
 
     // B should be paused now, A is lost (flat model)

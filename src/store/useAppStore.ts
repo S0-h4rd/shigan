@@ -181,6 +181,7 @@ export const useAppStore = create<AppStore>()(
         })
       },
 
+      // TODO: implement resumeTask in Task 3
       resumeTask: () => {},
 
       setView: (view) => set({ view }),
