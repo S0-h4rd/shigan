@@ -349,3 +349,64 @@ describe('skipTask', () => {
     expect(taskB.revisionCount).toBe(1)
   })
 })
+
+describe('activateTask', () => {
+  beforeEach(() => resetStore())
+
+  it('activates a scheduled task and starts timer', () => {
+    const base = new Date('2026-05-15T09:00:00')
+    useAppStore.setState({
+      schedule: {
+        date: '2026-05-15',
+        tasks: [
+          {
+            id: 'a',
+            title: 'Planned Task',
+            plannedDurationMinutes: 30,
+            status: 'scheduled',
+            priority: 'medium',
+            revisionCount: 0,
+            scheduledStart: base,
+            scheduledEnd: new Date(base.getTime() + 30 * 60000),
+          },
+        ],
+        interruptions: [],
+      },
+    })
+
+    useAppStore.getState().activateTask('a')
+    const state = useAppStore.getState()
+
+    expect(state.activeTaskId).toBe('a')
+    expect(state.timerStartAt).not.toBeNull()
+
+    const task = state.schedule.tasks[0]
+    expect(task.status).toBe('active')
+    expect(task.actualStart).toBeDefined()
+  })
+
+  it('does nothing when there is already an active task', () => {
+    useAppStore.getState().startTask('Active Task', 30)
+    useAppStore.setState({
+      schedule: {
+        date: '2026-05-15',
+        tasks: [
+          ...useAppStore.getState().schedule.tasks,
+          {
+            id: 'b',
+            title: 'Another',
+            plannedDurationMinutes: 30,
+            status: 'scheduled',
+            priority: 'medium',
+            revisionCount: 0,
+          },
+        ],
+        interruptions: [],
+      },
+    })
+
+    useAppStore.getState().activateTask('b')
+    const state = useAppStore.getState()
+    expect(state.activeTaskId).not.toBe('b')
+  })
+})

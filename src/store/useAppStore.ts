@@ -309,7 +309,26 @@ export const useAppStore = create<AppStore>()(
           schedule: { ...schedule, tasks: compacted },
         })
       },
-      activateTask: () => {},
+      activateTask: (taskId) => {
+        const { schedule, activeTaskId } = get()
+        if (activeTaskId) return
+
+        const now = new Date()
+        const updatedTasks = schedule.tasks.map((t) => {
+          if (t.id !== taskId) return t
+          return {
+            ...t,
+            status: 'active' as Task['status'],
+            actualStart: now,
+          }
+        })
+
+        set({
+          schedule: { ...schedule, tasks: updatedTasks },
+          activeTaskId: taskId,
+          timerStartAt: Date.now(),
+        })
+      },
 
       setView: (view) => set({ view }),
     }),
