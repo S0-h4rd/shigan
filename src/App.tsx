@@ -8,6 +8,7 @@ import { mockSchedule } from './data/mock'
 function App() {
   const schedule = useAppStore((state) => state.schedule)
   const activeTaskId = useAppStore((state) => state.activeTaskId)
+  const pausedTaskId = useAppStore((state) => state.pausedTaskId)
 
   const displaySchedule =
     schedule.tasks.length > 0 ? schedule : mockSchedule
@@ -30,8 +31,8 @@ function App() {
       <main className="py-4">
         <Timeline schedule={displaySchedule} />
       </main>
-      {activeTask ? (
-        <ActiveTaskBar task={activeTask} />
+      {activeTask || pausedTaskId ? (
+        <ActiveTaskBar task={activeTask || null} />
       ) : (
         <QuickStart />
       )}

@@ -7,26 +7,34 @@ import { useNow } from '@/hooks/useNow'
 const DEFAULT_INTERRUPTION_DURATION = 30
 
 interface ActiveTaskBarProps {
-  task: Task
+  task: Task | null
 }
 
 export default function ActiveTaskBar({ task }: ActiveTaskBarProps) {
   const endTask = useAppStore((state) => state.endTask)
   const interruptTask = useAppStore((state) => state.interruptTask)
+  const pausedTaskId = useAppStore((state) => state.pausedTaskId)
+  const resumeTask = useAppStore((state) => state.resumeTask)
+  const schedule = useAppStore((state) => state.schedule)
   const now = useNow(1000)
+
+  const pausedTask = useMemo(
+    () => schedule.tasks.find((t) => t.id === pausedTaskId) ?? null,
+    [schedule.tasks, pausedTaskId],
+  )
 
   const [isInterrupting, setIsInterrupting] = useState(false)
   const [interruptTitle, setInterruptTitle] = useState('')
 
   const remainingMs = useMemo(() => {
-    if (!task.scheduledEnd) return 0
+    if (!task?.scheduledEnd) return 0
     return task.scheduledEnd.getTime() - now
-  }, [task.scheduledEnd, now])
+  }, [task?.scheduledEnd, now])
 
   const elapsedMs = useMemo(() => {
-    if (!task.actualStart) return 0
+    if (!task?.actualStart) return 0
     return now - task.actualStart.getTime()
-  }, [task.actualStart, now])
+  }, [task?.actualStart, now])
 
   const handleStartInterruption = useCallback(() => {
     const trimmed = interruptTitle.trim()
@@ -49,6 +57,38 @@ export default function ActiveTaskBar({ task }: ActiveTaskBarProps) {
     },
     [handleStartInterruption],
   )
+
+  // Resume prompt mode: paused task exists but no active task
+  if (!task && pausedTask) {
+    const pausedDurationMs = pausedTask.actualDurationMinutes
+      ? pausedTask.actualDurationMinutes * 60000
+      : 0
+
+    return (
+      <div className="fixed bottom-0 left-0 right-0 bg-interruption-bg border-t border-interruption-border px-4 py-3 rounded-t-xl shadow-lg z-20">
+        <div className="max-w-[480px] mx-auto flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <span aria-hidden="true" className="text-interruption-text text-xs">⏸</span>
+            <span className="text-sm font-medium text-interruption-text truncate">
+              {pausedTask.title}
+            </span>
+            <span className="text-xs text-interruption-text/70">
+              已暂停 {formatDurationShort(pausedDurationMs)}
+            </span>
+          </div>
+          <button
+            onClick={resumeTask}
+            aria-label="恢复执行"
+            className="shrink-0 px-4 py-2 bg-active-bg text-active-text text-sm font-medium rounded-lg border border-active-border hover:bg-active-border transition-colors"
+          >
+            恢复执行
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (!task) return null
 
   if (isInterrupting) {
     return (
