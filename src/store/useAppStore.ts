@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { reschedule } from '@/core/reschedule'
 import type { AppState, DaySchedule, Interruption, Task, ViewMode } from '@/types'
 
 function emptySchedule(date: string): DaySchedule {
@@ -184,8 +185,62 @@ export const useAppStore = create<AppStore>()(
         })
       },
 
-      // TODO: implement resumeTask in Task 3
-      resumeTask: () => {},
+      resumeTask: () => {
+        const { schedule, pausedTaskId } = get()
+        if (!pausedTaskId) return
+
+        const interruptedTask = schedule.tasks.find((t) => t.id === pausedTaskId)
+        if (!interruptedTask) return
+
+        const interruptionTask = schedule.tasks.find(
+          (t) =>
+            t.status === 'completed' &&
+            schedule.interruptions.some((i) => i.newTaskId === t.id),
+        )
+        if (!interruptionTask || !interruptionTask.actualDurationMinutes) return
+
+        const rescheduled = reschedule(
+          schedule.tasks,
+          pausedTaskId,
+          interruptionTask,
+        )
+        if (!rescheduled) return
+
+        const now = new Date()
+        const dayEnd = new Date(interruptedTask.scheduledStart || now)
+        dayEnd.setHours(23, 59, 59, 999)
+
+        const updatedTasks = rescheduled.map((task) => {
+          if (task.id !== pausedTaskId) return task
+
+          const isDeferred =
+            task.scheduledEnd != null && task.scheduledEnd.getTime() > dayEnd.getTime()
+
+          if (isDeferred) {
+            return {
+              ...task,
+              status: 'deferred' as Task['status'],
+              scheduledStart: undefined,
+              scheduledEnd: undefined,
+            }
+          }
+
+          return {
+            ...task,
+            status: 'active' as Task['status'],
+            actualStart: now,
+          }
+        })
+
+        const resumedTask = updatedTasks.find((t) => t.id === pausedTaskId)
+
+        set({
+          schedule: { ...schedule, tasks: updatedTasks },
+          activeTaskId: resumedTask?.status === 'active' ? resumedTask.id : null,
+          pausedTaskId: null,
+          timerStartAt: resumedTask?.status === 'active' ? Date.now() : null,
+        })
+      },
 
       setView: (view) => set({ view }),
     }),

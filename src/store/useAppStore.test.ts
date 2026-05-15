@@ -97,3 +97,110 @@ describe('endTask with interruption', () => {
     expect(state.timerStartAt).toBeNull()
   })
 })
+
+import { reschedule } from '@/core/reschedule'
+
+describe('resumeTask', () => {
+  beforeEach(() => resetStore())
+
+  it('resumes the paused task and triggers reschedule', () => {
+    const base = new Date('2026-05-14T09:00:00')
+    useAppStore.setState({
+      schedule: {
+        date: '2026-05-14',
+        tasks: [
+          {
+            id: 'a',
+            title: 'Original Task',
+            plannedDurationMinutes: 30,
+            status: 'active',
+            priority: 'medium',
+            revisionCount: 0,
+            scheduledStart: base,
+            scheduledEnd: new Date(base.getTime() + 30 * 60000),
+            actualStart: base,
+          },
+          {
+            id: 'b',
+            title: 'Follow-up Task',
+            plannedDurationMinutes: 30,
+            status: 'scheduled',
+            priority: 'medium',
+            revisionCount: 0,
+            scheduledStart: new Date(base.getTime() + 30 * 60000),
+            scheduledEnd: new Date(base.getTime() + 60 * 60000),
+          },
+        ],
+        interruptions: [],
+      },
+      activeTaskId: 'a',
+      pausedTaskId: null,
+      timerStartAt: Date.now() - 10 * 60000,
+      view: 'timeline',
+    })
+
+    useAppStore.getState().interruptTask('Interruption', 20)
+    const interruptionId = useAppStore.getState().activeTaskId!
+    useAppStore.setState({ timerStartAt: Date.now() - 20 * 60000 })
+    useAppStore.getState().endTask()
+
+    useAppStore.getState().resumeTask()
+    const state = useAppStore.getState()
+
+    expect(state.activeTaskId).toBe('a')
+    expect(state.pausedTaskId).toBeNull()
+    expect(state.timerStartAt).not.toBeNull()
+
+    const originalTask = state.schedule.tasks.find((t) => t.id === 'a')!
+    expect(originalTask.status).toBe('active')
+    expect(originalTask.scheduledStart!.getTime()).toBe(base.getTime())
+    expect(originalTask.scheduledEnd!.getTime()).toBe(
+      base.getTime() + 50 * 60000,
+    )
+    expect(originalTask.revisionCount).toBe(1)
+
+    const followUp = state.schedule.tasks.find((t) => t.id === 'b')!
+    expect(followUp.scheduledStart!.getTime()).toBe(
+      base.getTime() + 50 * 60000,
+    )
+    expect(followUp.revisionCount).toBe(1)
+  })
+
+  it('marks task as deferred when reschedule pushes past midnight', () => {
+    const late = new Date('2026-05-14T23:50:00')
+    useAppStore.setState({
+      schedule: {
+        date: '2026-05-14',
+        tasks: [
+          {
+            id: 'a',
+            title: 'Late Task',
+            plannedDurationMinutes: 10,
+            status: 'active',
+            priority: 'medium',
+            revisionCount: 0,
+            scheduledStart: late,
+            scheduledEnd: new Date(late.getTime() + 10 * 60000),
+            actualStart: late,
+          },
+        ],
+        interruptions: [],
+      },
+      activeTaskId: 'a',
+      pausedTaskId: null,
+      timerStartAt: Date.now() - 5 * 60000,
+      view: 'timeline',
+    })
+
+    useAppStore.getState().interruptTask('Interruption', 15)
+    useAppStore.setState({ timerStartAt: Date.now() - 15 * 60000 })
+    useAppStore.getState().endTask()
+    useAppStore.getState().resumeTask()
+
+    const state = useAppStore.getState()
+    const originalTask = state.schedule.tasks.find((t) => t.id === 'a')!
+    expect(originalTask.status).toBe('deferred')
+    expect(originalTask.scheduledStart).toBeUndefined()
+    expect(originalTask.scheduledEnd).toBeUndefined()
+  })
+})
