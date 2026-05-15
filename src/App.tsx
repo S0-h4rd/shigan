@@ -47,6 +47,29 @@ function App() {
     setDismissedTaskId(null)
   }, [activeTaskId])
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable
+      ) {
+        return
+      }
+
+      if (e.key === ' ' || e.code === 'Space') {
+        e.preventDefault()
+        if (activeTask) {
+          endTask()
+        }
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [activeTask, endTask])
+
   const toggleView = () => {
     setView(view === 'timeline' ? 'report' : 'timeline')
   }

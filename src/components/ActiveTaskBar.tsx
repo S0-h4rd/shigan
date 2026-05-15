@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Task } from '@/types'
 import { formatDurationShort } from '@/core/timer'
 import { useAppStore } from '@/store/useAppStore'
@@ -63,6 +63,17 @@ export default function ActiveTaskBar({ task }: ActiveTaskBarProps) {
     },
     [handleStartInterruption],
   )
+
+  useEffect(() => {
+    if (!isInterrupting) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleCancelInterruption()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [isInterrupting, handleCancelInterruption])
 
   // Resume prompt mode: paused task exists but no active task
   if (!task && pausedTask) {

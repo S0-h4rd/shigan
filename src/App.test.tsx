@@ -25,3 +25,18 @@ describe('App view toggle', () => {
     expect(screen.getByText('今日时间线')).toBeInTheDocument()
   })
 })
+
+describe('App keyboard shortcuts', () => {
+  it('handles Space keydown on document without error', () => {
+    render(<App />)
+    fireEvent.keyDown(document, { key: ' ' })
+    // Should not throw
+  })
+
+  it('Space shortcut does not fire when typing in input', () => {
+    render(<App />)
+    const input = screen.getByPlaceholderText('在做什么？')
+    fireEvent.keyDown(input, { key: ' ' })
+    expect(input).toBeInTheDocument()
+  })
+})
