@@ -62,6 +62,12 @@ interface AppStore extends AppState {
     category?: string,
   ) => void
   resumeTask: () => void
+  addPlannedTask: (
+    title: string,
+    plannedDurationMinutes: number,
+  ) => void
+  skipTask: (taskId: string) => void
+  activateTask: (taskId: string) => void
   setView: (view: ViewMode) => void
 }
 
@@ -247,6 +253,51 @@ export const useAppStore = create<AppStore>()(
           timerStartAt: resumedTask?.status === 'active' ? Date.now() : null,
         })
       },
+
+      addPlannedTask: (title, plannedDurationMinutes) => {
+        const { schedule } = get()
+        const now = new Date()
+
+        let defaultStart = now
+        const lastTask = [...schedule.tasks]
+          .filter((t) => t.scheduledEnd)
+          .sort(
+            (a, b) =>
+              (b.scheduledEnd?.getTime() ?? 0) -
+              (a.scheduledEnd?.getTime() ?? 0),
+          )[0]
+
+        if (lastTask?.scheduledEnd) {
+          defaultStart = lastTask.scheduledEnd
+        } else {
+          const ms = defaultStart.getTime()
+          const thirtyMin = 30 * 60000
+          defaultStart = new Date(Math.ceil(ms / thirtyMin) * thirtyMin)
+        }
+
+        const newTask: Task = {
+          id: generateId(),
+          title,
+          plannedDurationMinutes,
+          status: 'scheduled',
+          scheduledStart: defaultStart,
+          scheduledEnd: new Date(
+            defaultStart.getTime() + plannedDurationMinutes * 60000,
+          ),
+          priority: 'medium',
+          revisionCount: 0,
+        }
+
+        set({
+          schedule: {
+            ...schedule,
+            tasks: [...schedule.tasks, newTask],
+          },
+        })
+      },
+
+      skipTask: () => {},
+      activateTask: () => {},
 
       setView: (view) => set({ view }),
     }),

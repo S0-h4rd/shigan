@@ -252,3 +252,51 @@ describe('resumeTask', () => {
     expect(state.pausedTaskId).toBe('a')
   })
 })
+
+describe('addPlannedTask', () => {
+  beforeEach(() => resetStore())
+
+  it('appends a planned task to the end of the timeline', () => {
+    useAppStore.setState({
+      schedule: {
+        date: '2026-05-15',
+        tasks: [
+          {
+            id: 'a',
+            title: 'Existing',
+            plannedDurationMinutes: 30,
+            status: 'scheduled',
+            priority: 'medium',
+            revisionCount: 0,
+            scheduledStart: new Date('2026-05-15T09:00:00'),
+            scheduledEnd: new Date('2026-05-15T09:30:00'),
+          },
+        ],
+        interruptions: [],
+      },
+    })
+
+    useAppStore.getState().addPlannedTask('New Task', 60)
+    const state = useAppStore.getState()
+
+    expect(state.schedule.tasks.length).toBe(2)
+    const newTask = state.schedule.tasks[1]
+    expect(newTask.title).toBe('New Task')
+    expect(newTask.status).toBe('scheduled')
+    expect(newTask.plannedDurationMinutes).toBe(60)
+    expect(newTask.scheduledStart).toEqual(new Date('2026-05-15T09:30:00'))
+    expect(newTask.scheduledEnd).toEqual(new Date('2026-05-15T10:30:00'))
+  })
+
+  it('uses rounded current time when timeline is empty', () => {
+    useAppStore.getState().addPlannedTask('First Task', 30)
+    const state = useAppStore.getState()
+
+    expect(state.schedule.tasks.length).toBe(1)
+    const task = state.schedule.tasks[0]
+    expect(task.status).toBe('scheduled')
+    expect(task.scheduledStart).toBeDefined()
+    const startMin = task.scheduledStart!.getMinutes()
+    expect(startMin === 0 || startMin === 30).toBe(true)
+  })
+})
