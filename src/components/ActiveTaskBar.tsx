@@ -31,6 +31,12 @@ export default function ActiveTaskBar({ task }: ActiveTaskBarProps) {
     return task.scheduledEnd.getTime() - now
   }, [task?.scheduledEnd, now])
 
+  const isNearEnd = remainingMs > 0 && remainingMs <= 5 * 60 * 1000
+  const isOverdue = remainingMs <= 0
+  const borderClass = isNearEnd || isOverdue ? 'border-overtime-border' : 'border-border-light'
+  const pulseClass = isNearEnd ? 'animate-pulse-reminder' : ''
+  const remainingTextClass = isNearEnd || isOverdue ? 'text-overtime-text' : 'text-text-muted'
+
   const elapsedMs = useMemo(() => {
     if (!task?.actualStart) return 0
     return now - task.actualStart.getTime()
@@ -129,7 +135,7 @@ export default function ActiveTaskBar({ task }: ActiveTaskBarProps) {
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-bg-base border-t border-border-light px-4 py-3 rounded-t-xl shadow-lg z-20">
+    <div className={`fixed bottom-0 left-0 right-0 bg-bg-base border-t ${borderClass} ${pulseClass} px-4 py-3 rounded-t-xl shadow-lg z-20`}>
       <div className="max-w-[480px] mx-auto">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
@@ -139,7 +145,7 @@ export default function ActiveTaskBar({ task }: ActiveTaskBarProps) {
                 {task.title}
               </span>
             </div>
-            <div className="text-xs text-text-muted font-mono font-tabular mt-0.5">
+            <div className={`text-xs ${remainingTextClass} font-mono font-tabular mt-0.5`}>
               {remainingMs > 0
                 ? `${formatDurationShort(remainingMs)} 剩余`
                 : '已超时'}

@@ -1,10 +1,12 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Timeline from './components/Timeline'
 import ReportView from './components/ReportView'
 import ActiveTaskBar from './components/ActiveTaskBar'
 import QuickStart from './components/QuickStart'
 import PlanTaskPanel from './components/PlanTaskPanel'
+import EndReminderModal from './components/EndReminderModal'
 import { useAppStore } from './store/useAppStore'
+import { useNow } from './hooks/useNow'
 import { mockSchedule } from './data/mock'
 
 function App() {
@@ -13,6 +15,9 @@ function App() {
   const pausedTaskId = useAppStore((state) => state.pausedTaskId)
   const view = useAppStore((state) => state.view)
   const setView = useAppStore((state) => state.setView)
+  const endTask = useAppStore((state) => state.endTask)
+  const extendTask = useAppStore((state) => state.extendTask)
+  const deferTask = useAppStore((state) => state.deferTask)
 
   const displaySchedule =
     schedule.tasks.length > 0 ? schedule : mockSchedule
@@ -22,7 +27,20 @@ function App() {
     [schedule.tasks, activeTaskId],
   )
 
+  const now = useNow(1000)
+  const remainingMs = useMemo(() => {
+    if (!activeTask?.scheduledEnd) return Infinity
+    return activeTask.scheduledEnd.getTime() - now
+  }, [activeTask?.scheduledEnd, now])
+
   const [showPlanPanel, setShowPlanPanel] = useState(false)
+  const [showEndModal, setShowEndModal] = useState(false)
+
+  useEffect(() => {
+    if (remainingMs <= 0 && activeTask) {
+      setShowEndModal(true)
+    }
+  }, [remainingMs, activeTask])
 
   const toggleView = () => {
     setView(view === 'timeline' ? 'report' : 'timeline')
@@ -55,6 +73,14 @@ function App() {
       ) : (
         <QuickStart />
       )}
+      <EndReminderModal
+        task={activeTask || null}
+        isOpen={showEndModal}
+        onClose={() => setShowEndModal(false)}
+        onEnd={endTask}
+        onExtend={() => extendTask(10)}
+        onDefer={deferTask}
+      />
     </div>
   )
 }
