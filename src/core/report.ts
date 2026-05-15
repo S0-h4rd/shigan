@@ -1,34 +1,55 @@
 import type { DaySchedule, TimeInsight } from '@/types'
 
-export function generateReport(schedule: DaySchedule): TimeInsight {
-  const completedTasks = schedule.tasks.filter((t) => t.status === 'completed').length
-  const cancelledTasks = schedule.tasks.filter((t) => t.status === 'cancelled').length
-  const deferredTasks = schedule.tasks.filter((t) => t.status === 'deferred').length
-
-  const totalPlannedMinutes = schedule.tasks.reduce(
-    (sum, t) => sum + t.plannedDurationMinutes,
-    0,
-  )
-
-  const totalActualMinutes = schedule.tasks.reduce(
-    (sum, t) => sum + (t.actualDurationMinutes ?? 0),
-    0,
-  )
-
-  const totalInterruptionMinutes = schedule.interruptions.reduce(
-    (sum, i) => sum + (i.durationMinutes ?? 0),
-    0,
-  )
-
+export function generateTimeInsight(schedule: DaySchedule): TimeInsight {
+  let totalPlannedMinutes = 0
+  let totalActualMinutes = 0
+  let completedTasks = 0
+  let cancelledTasks = 0
+  let deferredTasks = 0
+  let revisionCount = 0
   const categoryBreakdown: Record<string, number> = {}
+
   for (const task of schedule.tasks) {
-    if (task.actualDurationMinutes && task.actualDurationMinutes > 0) {
-      const cat = task.category ?? '未分类'
-      categoryBreakdown[cat] = (categoryBreakdown[cat] ?? 0) + task.actualDurationMinutes
+    if (task.status !== 'cancelled') {
+      totalPlannedMinutes += task.plannedDurationMinutes
+    }
+
+    if (task.status === 'completed' || task.status === 'active') {
+      if (task.actualDurationMinutes != null) {
+        totalActualMinutes += task.actualDurationMinutes
+      }
+    }
+
+    if (task.status === 'completed') {
+      completedTasks++
+    } else if (task.status === 'cancelled') {
+      cancelledTasks++
+    } else if (task.status === 'deferred') {
+      deferredTasks++
+    }
+
+    revisionCount += task.revisionCount
+
+    if (task.actualDurationMinutes != null) {
+      const category = task.category || '未分类'
+      categoryBreakdown[category] = (categoryBreakdown[category] || 0) + task.actualDurationMinutes
     }
   }
 
-  const revisionCount = schedule.tasks.reduce((sum, t) => sum + t.revisionCount, 0)
+  const interruptionTaskIds = new Set(
+    schedule.interruptions.map((i) => i.newTaskId)
+  )
+
+  let totalInterruptionMinutes = 0
+  for (const task of schedule.tasks) {
+    if (
+      interruptionTaskIds.has(task.id) &&
+      task.status === 'completed' &&
+      task.actualDurationMinutes != null
+    ) {
+      totalInterruptionMinutes += task.actualDurationMinutes
+    }
+  }
 
   return {
     date: schedule.date,
