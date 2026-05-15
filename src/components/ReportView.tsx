@@ -54,7 +54,7 @@ function formatMinutes(minutes: number): string {
   if (minutes >= 60) {
     const h = Math.floor(minutes / 60)
     const m = minutes % 60
-    return m > 0 ? `${h}时${m}分` : `${h}时`
+    return `${h}时${m}分`
   }
   return `${minutes}分`
 }
@@ -75,7 +75,9 @@ export default function ReportView({ schedule }: ReportViewProps) {
   const remainingTasks = totalTasks - insight.completedTasks - insight.cancelledTasks
 
   const categoryEntries = useMemo(() => {
-    const entries = Object.entries(insight.categoryBreakdown)
+    const entries = Object.entries(insight.categoryBreakdown).sort(
+      (a, b) => b[1] - a[1],
+    )
     if (entries.length === 0) return []
     const maxValue = Math.max(...entries.map(([, v]) => v))
     return entries.map(([label, value]) => ({ label, value, maxValue }))
