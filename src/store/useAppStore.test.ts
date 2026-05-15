@@ -350,6 +350,50 @@ describe('skipTask', () => {
   })
 })
 
+describe('extendTask', () => {
+  beforeEach(() => resetStore())
+
+  it('extends active task scheduledEnd by given minutes', () => {
+    useAppStore.getState().startTask('Test', 30)
+    const task = useAppStore.getState().schedule.tasks[0]
+    const originalEnd = task.scheduledEnd!
+
+    useAppStore.getState().extendTask(10)
+
+    const updated = useAppStore.getState().schedule.tasks[0]
+    expect(updated.scheduledEnd!.getTime()).toBe(originalEnd.getTime() + 10 * 60000)
+    expect(updated.revisionCount).toBe(1)
+  })
+
+  it('does nothing when no active task', () => {
+    useAppStore.getState().extendTask(10)
+    expect(useAppStore.getState().schedule.tasks).toHaveLength(0)
+  })
+})
+
+describe('deferTask', () => {
+  beforeEach(() => resetStore())
+
+  it('defers active task and clears active state', () => {
+    useAppStore.getState().startTask('Test', 30)
+
+    useAppStore.getState().deferTask()
+
+    const updated = useAppStore.getState().schedule.tasks[0]
+    expect(updated.status).toBe('deferred')
+    expect(updated.scheduledStart).toBeUndefined()
+    expect(updated.scheduledEnd).toBeUndefined()
+    expect(updated.revisionCount).toBe(1)
+    expect(useAppStore.getState().activeTaskId).toBeNull()
+    expect(useAppStore.getState().timerStartAt).toBeNull()
+  })
+
+  it('does nothing when no active task', () => {
+    useAppStore.getState().deferTask()
+    expect(useAppStore.getState().schedule.tasks).toHaveLength(0)
+  })
+})
+
 describe('activateTask', () => {
   beforeEach(() => resetStore())
 

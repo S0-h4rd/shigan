@@ -69,6 +69,8 @@ interface AppStore extends AppState {
   ) => void
   skipTask: (taskId: string) => void
   activateTask: (taskId: string) => void
+  extendTask: (additionalMinutes: number) => void
+  deferTask: () => void
   setView: (view: ViewMode) => void
 }
 
@@ -327,6 +329,46 @@ export const useAppStore = create<AppStore>()(
           schedule: { ...schedule, tasks: updatedTasks },
           activeTaskId: taskId,
           timerStartAt: Date.now(),
+        })
+      },
+
+      extendTask: (additionalMinutes) => {
+        const { schedule, activeTaskId } = get()
+        if (!activeTaskId) return
+
+        const updatedTasks = schedule.tasks.map((t) => {
+          if (t.id !== activeTaskId) return t
+          return {
+            ...t,
+            scheduledEnd: t.scheduledEnd
+              ? new Date(t.scheduledEnd.getTime() + additionalMinutes * 60000)
+              : undefined,
+            revisionCount: t.revisionCount + 1,
+          }
+        })
+
+        set({ schedule: { ...schedule, tasks: updatedTasks } })
+      },
+
+      deferTask: () => {
+        const { schedule, activeTaskId } = get()
+        if (!activeTaskId) return
+
+        const updatedTasks = schedule.tasks.map((t) => {
+          if (t.id !== activeTaskId) return t
+          return {
+            ...t,
+            status: 'deferred' as Task['status'],
+            scheduledStart: undefined,
+            scheduledEnd: undefined,
+            revisionCount: t.revisionCount + 1,
+          }
+        })
+
+        set({
+          schedule: { ...schedule, tasks: updatedTasks },
+          activeTaskId: null,
+          timerStartAt: null,
         })
       },
 
