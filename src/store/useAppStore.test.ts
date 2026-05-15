@@ -394,6 +394,34 @@ describe('deferTask', () => {
   })
 })
 
+describe('backfillTask', () => {
+  beforeEach(() => resetStore())
+
+  it('adds a completed task at the given time range', () => {
+    const start = new Date('2026-05-15T10:00:00')
+    const end = new Date('2026-05-15T10:30:00')
+    useAppStore.getState().backfillTask('开会', 30, start, end)
+
+    const tasks = useAppStore.getState().schedule.tasks
+    expect(tasks).toHaveLength(1)
+    expect(tasks[0].title).toBe('开会')
+    expect(tasks[0].status).toBe('completed')
+    expect(tasks[0].plannedDurationMinutes).toBe(30)
+    expect(tasks[0].actualDurationMinutes).toBe(30)
+    expect(tasks[0].scheduledStart).toEqual(start)
+    expect(tasks[0].scheduledEnd).toEqual(end)
+    expect(tasks[0].actualStart).toEqual(start)
+    expect(tasks[0].actualEnd).toEqual(end)
+  })
+
+  it('does nothing when title is empty', () => {
+    const start = new Date('2026-05-15T10:00:00')
+    const end = new Date('2026-05-15T10:30:00')
+    useAppStore.getState().backfillTask('', 30, start, end)
+    expect(useAppStore.getState().schedule.tasks).toHaveLength(0)
+  })
+})
+
 describe('activateTask', () => {
   beforeEach(() => resetStore())
 

@@ -71,6 +71,13 @@ interface AppStore extends AppState {
   activateTask: (taskId: string) => void
   extendTask: (additionalMinutes: number) => void
   deferTask: () => void
+  backfillTask: (
+    title: string,
+    plannedDurationMinutes: number,
+    start: Date,
+    end: Date,
+    category?: string,
+  ) => void
   setView: (view: ViewMode) => void
 }
 
@@ -369,6 +376,37 @@ export const useAppStore = create<AppStore>()(
           schedule: { ...schedule, tasks: updatedTasks },
           activeTaskId: null,
           timerStartAt: null,
+        })
+      },
+
+      backfillTask: (title, plannedDurationMinutes, start, end, category) => {
+        if (!title.trim()) return
+        const { schedule } = get()
+
+        const actualDurationMinutes = Math.round(
+          (end.getTime() - start.getTime()) / 60000,
+        )
+
+        const newTask: Task = {
+          id: generateId(),
+          title: title.trim(),
+          plannedDurationMinutes,
+          status: 'completed',
+          scheduledStart: start,
+          scheduledEnd: end,
+          actualStart: start,
+          actualEnd: end,
+          actualDurationMinutes,
+          priority: 'medium',
+          revisionCount: 0,
+          category,
+        }
+
+        set({
+          schedule: {
+            ...schedule,
+            tasks: [...schedule.tasks, newTask],
+          },
         })
       },
 
