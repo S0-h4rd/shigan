@@ -8,6 +8,7 @@ import EndReminderModal from './components/EndReminderModal'
 import BackfillPanel from './components/BackfillPanel'
 import { useAppStore } from './store/useAppStore'
 import { useNow } from './hooks/useNow'
+import { useNotifications } from './hooks/useNotifications'
 import { mockSchedule } from './data/mock'
 
 function App() {
@@ -39,15 +40,35 @@ function App() {
   const [dismissedTaskId, setDismissedTaskId] = useState<string | null>(null)
   const [backfillRange, setBackfillRange] = useState<{ start: Date; end: Date } | null>(null)
 
+  const { notify, resetTag } = useNotifications()
+
   useEffect(() => {
     if (remainingMs <= 0 && activeTask && activeTask.id !== dismissedTaskId) {
       setShowEndModal(true)
+      notify('时间到了', `任务 "${activeTask.title}" 计划时间已结束`, `end-${activeTask.id}`)
     }
-  }, [remainingMs, activeTask, dismissedTaskId])
+  }, [remainingMs, activeTask, dismissedTaskId, notify])
+
+  useEffect(() => {
+    if (
+      remainingMs > 0 &&
+      remainingMs <= 5 * 60 * 1000 &&
+      activeTask
+    ) {
+      notify('即将结束', `任务 "${activeTask.title}" 还剩 5 分钟`, `warning-${activeTask.id}`)
+    }
+  }, [remainingMs, activeTask, notify])
 
   useEffect(() => {
     setDismissedTaskId(null)
   }, [activeTaskId])
+
+  useEffect(() => {
+    if (activeTaskId) {
+      resetTag(`end-${activeTaskId}`)
+      resetTag(`warning-${activeTaskId}`)
+    }
+  }, [activeTaskId, resetTag])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

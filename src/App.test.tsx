@@ -40,3 +40,14 @@ describe('App keyboard shortcuts', () => {
     expect(input).toBeInTheDocument()
   })
 })
+
+describe('App notifications', () => {
+  it('renders without error when Notification API is unavailable', () => {
+    // Ensure Notification is undefined
+    const original = global.Notification
+    // @ts-expect-error intentionally removing Notification
+    global.Notification = undefined
+    expect(() => render(<App />)).not.toThrow()
+    global.Notification = original
+  })
+})
