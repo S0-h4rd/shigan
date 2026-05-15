@@ -35,12 +35,17 @@ function App() {
 
   const [showPlanPanel, setShowPlanPanel] = useState(false)
   const [showEndModal, setShowEndModal] = useState(false)
+  const [dismissedTaskId, setDismissedTaskId] = useState<string | null>(null)
 
   useEffect(() => {
-    if (remainingMs <= 0 && activeTask) {
+    if (remainingMs <= 0 && activeTask && activeTask.id !== dismissedTaskId) {
       setShowEndModal(true)
     }
-  }, [remainingMs, activeTask])
+  }, [remainingMs, activeTask, dismissedTaskId])
+
+  useEffect(() => {
+    setDismissedTaskId(null)
+  }, [activeTaskId])
 
   const toggleView = () => {
     setView(view === 'timeline' ? 'report' : 'timeline')
@@ -76,10 +81,24 @@ function App() {
       <EndReminderModal
         task={activeTask || null}
         isOpen={showEndModal}
-        onClose={() => setShowEndModal(false)}
-        onEnd={endTask}
-        onExtend={() => extendTask(10)}
-        onDefer={deferTask}
+        onClose={() => {
+          setShowEndModal(false)
+          if (activeTask) {
+            setDismissedTaskId(activeTask.id)
+          }
+        }}
+        onEnd={() => {
+          endTask()
+          setDismissedTaskId(null)
+        }}
+        onExtend={() => {
+          extendTask(10)
+          setDismissedTaskId(null)
+        }}
+        onDefer={() => {
+          deferTask()
+          setDismissedTaskId(null)
+        }}
       />
     </div>
   )
