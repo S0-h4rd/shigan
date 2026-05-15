@@ -67,9 +67,10 @@ function findBlankSlots(tasks: Task[]): BlankSlot[] {
 
 interface TimelineProps {
   schedule: DaySchedule
+  onAddPlan: () => void
 }
 
-export default function Timeline({ schedule }: TimelineProps) {
+export default function Timeline({ schedule, onAddPlan }: TimelineProps) {
   const hours = useMemo(
     () => Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => START_HOUR + i),
     [],
@@ -96,6 +97,17 @@ export default function Timeline({ schedule }: TimelineProps) {
 
   return (
     <div className="relative w-full max-w-[480px] mx-auto">
+      <div className="flex items-center justify-between px-4 py-2">
+        <span className="text-sm font-medium text-text-secondary">
+          今日时间线
+        </span>
+        <button
+          onClick={onAddPlan}
+          className="px-3 py-1.5 text-xs font-medium text-scheduled-text border border-scheduled-border rounded-full hover:bg-scheduled-bg transition-colors"
+        >
+          + 添加计划
+        </button>
+      </div>
       {/* 时间线主体 */}
       <div className="relative" style={{ height: `${totalHeight}px` }}>
         {/* 小时刻度背景 */}

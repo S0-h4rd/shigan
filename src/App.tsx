@@ -1,7 +1,8 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import Timeline from './components/Timeline'
 import ActiveTaskBar from './components/ActiveTaskBar'
 import QuickStart from './components/QuickStart'
+import PlanTaskPanel from './components/PlanTaskPanel'
 import { useAppStore } from './store/useAppStore'
 import { mockSchedule } from './data/mock'
 
@@ -18,6 +19,8 @@ function App() {
     [schedule.tasks, activeTaskId],
   )
 
+  const [showPlanPanel, setShowPlanPanel] = useState(false)
+
   return (
     <div className="min-h-screen bg-bg-base font-sans text-text-primary pb-32">
       <header className="sticky top-0 z-10 bg-bg-base/90 backdrop-blur-sm border-b border-border-light px-4 py-3">
@@ -29,10 +32,12 @@ function App() {
         </div>
       </header>
       <main className="py-4">
-        <Timeline schedule={displaySchedule} />
+        <Timeline schedule={displaySchedule} onAddPlan={() => setShowPlanPanel(true)} />
       </main>
       {!!activeTask || pausedTaskId !== null ? (
         <ActiveTaskBar task={activeTask || null} />
+      ) : showPlanPanel ? (
+        <PlanTaskPanel onClose={() => setShowPlanPanel(false)} />
       ) : (
         <QuickStart />
       )}
