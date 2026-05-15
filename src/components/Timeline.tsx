@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import type { DaySchedule, Task } from '@/types'
 import TaskBlock from './TaskBlock'
+import EmptyState from './EmptyState'
 
 const HOUR_HEIGHT = 80 // 每小时 80px，1 分钟 ≈ 1.33px
 const START_HOUR = 6
@@ -108,51 +109,54 @@ export default function Timeline({ schedule, onAddPlan }: TimelineProps) {
           + 添加计划
         </button>
       </div>
-      {/* 时间线主体 */}
-      <div className="relative" style={{ height: `${totalHeight}px` }}>
-        {/* 小时刻度背景 */}
-        {hours.map((hour, idx) => (
-          <div
-            key={hour}
-            className="absolute left-0 right-0 flex"
-            style={{ top: `${idx * HOUR_HEIGHT}px`, height: `${HOUR_HEIGHT}px` }}
-          >
-            <div className="w-12 text-right pr-2 pt-1">
-              <span className="text-xs text-text-muted font-mono font-tabular">
-                {hour}:00
-              </span>
-            </div>
-            <div className="flex-1 border-t border-dashed border-border-light" />
-          </div>
-        ))}
-
-        {/* 空白时间段 */}
-        {blankSlots.map((slot, idx) => {
-          const top = (slot.start - START_HOUR * 60) * (HOUR_HEIGHT / 60)
-          const height = (slot.end - slot.start) * (HOUR_HEIGHT / 60)
-          return (
+      {schedule.tasks.length === 0 ? (
+        <EmptyState variant="first-use" />
+      ) : (
+        <div className="relative" style={{ height: `${totalHeight}px` }}>
+          {/* 小时刻度背景 */}
+          {hours.map((hour, idx) => (
             <div
-              key={`blank-${idx}`}
-              className="absolute left-14 right-2 rounded-md border border-dashed border-empty-border bg-empty-bg"
-              style={{ top: `${top}px`, height: `${height}px` }}
+              key={hour}
+              className="absolute left-0 right-0 flex"
+              style={{ top: `${idx * HOUR_HEIGHT}px`, height: `${HOUR_HEIGHT}px` }}
             >
-              <div className="flex items-center justify-center h-full">
-                <span className="text-xs text-empty-text">未记录</span>
+              <div className="w-12 text-right pr-2 pt-1">
+                <span className="text-xs text-text-muted font-mono font-tabular">
+                  {hour}:00
+                </span>
               </div>
+              <div className="flex-1 border-t border-dashed border-border-light" />
             </div>
-          )
-        })}
+          ))}
 
-        {/* 任务色块 */}
-        {sortedTasks.map((task) => (
-          <TaskBlock
-            key={task.id}
-            task={task}
-            style={getTaskStyle(task)}
-            isInterrupt={interruptTaskIds.has(task.id)}
-          />
-        ))}
-      </div>
+          {/* 空白时间段 */}
+          {blankSlots.map((slot, idx) => {
+            const top = (slot.start - START_HOUR * 60) * (HOUR_HEIGHT / 60)
+            const height = (slot.end - slot.start) * (HOUR_HEIGHT / 60)
+            return (
+              <div
+                key={`blank-${idx}`}
+                className="absolute left-14 right-2 rounded-md border border-dashed border-empty-border bg-empty-bg"
+                style={{ top: `${top}px`, height: `${height}px` }}
+              >
+                <div className="flex items-center justify-center h-full">
+                  <span className="text-xs text-empty-text">未记录</span>
+                </div>
+              </div>
+            )
+          })}
+
+          {/* 任务色块 */}
+          {sortedTasks.map((task) => (
+            <TaskBlock
+              key={task.id}
+              task={task}
+              style={getTaskStyle(task)}
+              isInterrupt={interruptTaskIds.has(task.id)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
