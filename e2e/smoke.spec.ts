@@ -82,4 +82,9 @@ test.describe('端到端验证', () => {
     await page.getByRole('button', { name: '记录任务' }).click()
     await expect(page.getByText('晨跑')).toBeVisible()
   })
+
+  test('报告页导出按钮可见', async ({ page }) => {
+    await page.getByText('报告').click()
+    await expect(page.getByRole('button', { name: '导出数据' })).toBeVisible()
+  })
 })

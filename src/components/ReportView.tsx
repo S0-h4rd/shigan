@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import type { DaySchedule, Task } from '@/types'
 import { generateTimeInsight } from '@/core/report'
+import ExportButton from './ExportButton'
 
 const HOUR_HEIGHT = 80
 const START_HOUR = 6
@@ -162,9 +163,12 @@ export default function ReportView({ schedule }: ReportViewProps) {
   return (
     <div className="w-full max-w-[480px] mx-auto px-4 py-4 space-y-5">
       {/* Date title */}
-      <h2 className="text-lg font-medium text-text-primary text-center">
-        {schedule.date}
-      </h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-medium text-text-primary text-center flex-1">
+          {schedule.date}
+        </h2>
+        <ExportButton schedule={schedule} />
+      </div>
 
       {/* Metric cards 2x2 grid */}
       <div className="grid grid-cols-2 gap-3">
