@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import type { Task } from '@/types'
 
 interface EndReminderModalProps {
@@ -33,11 +33,24 @@ export default function EndReminderModal({
     onClose()
   }, [onDefer, onClose])
 
+  const closeButtonRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    if (!isOpen) return
+    closeButtonRef.current?.focus()
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, onClose])
+
   if (!isOpen || !task) return null
 
   return (
     <>
       <div
+        data-testid="backdrop"
         className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30"
         onClick={onClose}
         aria-hidden="true"
@@ -48,18 +61,20 @@ export default function EndReminderModal({
           role="dialog"
           aria-modal="true"
           aria-labelledby="end-reminder-title"
+          aria-describedby="end-reminder-desc"
         >
           <button
+            ref={closeButtonRef}
             onClick={onClose}
             aria-label="关闭"
             className="absolute top-3 right-3 text-text-muted hover:text-text-primary transition-colors"
           >
-            ✕
+            <span aria-hidden="true">✕</span>
           </button>
           <h3 id="end-reminder-title" className="text-lg font-semibold text-text-primary">
             时间到了
           </h3>
-          <p className="text-sm text-text-secondary mt-1">
+          <p id="end-reminder-desc" className="text-sm text-text-secondary mt-1">
             任务 "{task.title}" 计划时间已结束
           </p>
           <div className="flex flex-col gap-2 mt-4">

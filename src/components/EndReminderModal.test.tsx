@@ -35,7 +35,7 @@ describe('EndReminderModal', () => {
     const onClose = vi.fn()
     render(<EndReminderModal task={mockTask} isOpen={true} onClose={onClose} />)
     fireEvent.click(screen.getByLabelText('关闭'))
-    expect(onClose).toHaveBeenCalled()
+    expect(onClose).toHaveBeenCalledTimes(1)
   })
 
   it('calls onEnd and onClose when clicking 结束', () => {
@@ -43,8 +43,8 @@ describe('EndReminderModal', () => {
     const onClose = vi.fn()
     render(<EndReminderModal task={mockTask} isOpen={true} onClose={onClose} onEnd={onEnd} />)
     fireEvent.click(screen.getByText('结束'))
-    expect(onEnd).toHaveBeenCalled()
-    expect(onClose).toHaveBeenCalled()
+    expect(onEnd).toHaveBeenCalledTimes(1)
+    expect(onClose).toHaveBeenCalledTimes(1)
   })
 
   it('calls onExtend and onClose when clicking 延长 10 分钟', () => {
@@ -52,8 +52,8 @@ describe('EndReminderModal', () => {
     const onClose = vi.fn()
     render(<EndReminderModal task={mockTask} isOpen={true} onClose={onClose} onExtend={onExtend} />)
     fireEvent.click(screen.getByText('延长 10 分钟'))
-    expect(onExtend).toHaveBeenCalled()
-    expect(onClose).toHaveBeenCalled()
+    expect(onExtend).toHaveBeenCalledTimes(1)
+    expect(onClose).toHaveBeenCalledTimes(1)
   })
 
   it('calls onDefer and onClose when clicking 延后到明天', () => {
@@ -61,15 +61,22 @@ describe('EndReminderModal', () => {
     const onClose = vi.fn()
     render(<EndReminderModal task={mockTask} isOpen={true} onClose={onClose} onDefer={onDefer} />)
     fireEvent.click(screen.getByText('延后到明天'))
-    expect(onDefer).toHaveBeenCalled()
-    expect(onClose).toHaveBeenCalled()
+    expect(onDefer).toHaveBeenCalledTimes(1)
+    expect(onClose).toHaveBeenCalledTimes(1)
   })
 
   it('calls onClose when clicking backdrop', () => {
     const onClose = vi.fn()
     render(<EndReminderModal task={mockTask} isOpen={true} onClose={onClose} />)
-    const backdrop = document.querySelector('[aria-hidden="true"]')
-    if (backdrop) fireEvent.click(backdrop)
-    expect(onClose).toHaveBeenCalled()
+    const backdrop = screen.getByTestId('backdrop')
+    fireEvent.click(backdrop)
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('calls onClose when pressing Escape', () => {
+    const onClose = vi.fn()
+    render(<EndReminderModal task={mockTask} isOpen={true} onClose={onClose} />)
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(onClose).toHaveBeenCalledTimes(1)
   })
 })
