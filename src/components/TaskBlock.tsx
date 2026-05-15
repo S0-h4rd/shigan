@@ -26,9 +26,9 @@ const statusTheme: Record<
     label: '进行中',
   },
   paused: {
-    bg: 'bg-interrupt-bg',
-    text: 'text-interrupt-text',
-    border: 'border-interrupt-border',
+    bg: 'bg-interruption-bg',
+    text: 'text-interruption-text',
+    border: 'border-interruption-border',
     icon: '⏸',
     label: '已暂停',
   },
@@ -84,6 +84,9 @@ function getDurationLabel(task: Task): string {
       Math.round((task.scheduledEnd.getTime() - Date.now()) / 60000),
     )
     return `剩余 ${remaining} 分钟`
+  }
+  if (task.status === 'paused' && task.actualDurationMinutes) {
+    return `已进行 ${task.actualDurationMinutes}分钟`
   }
   if (task.plannedDurationMinutes) {
     return `${task.plannedDurationMinutes}分钟`
