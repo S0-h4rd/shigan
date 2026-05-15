@@ -113,7 +113,7 @@ export default function TaskBlock({ task, style, isInterrupt }: TaskBlockProps) 
 
   return (
     <div
-      className={`absolute ${leftClass} rounded-md border ${theme.bg} ${theme.border} py-2 px-3 shadow-sm transition-all hover:shadow-md`}
+      className={`absolute ${leftClass} rounded-md border ${theme.bg} ${theme.border} py-2 px-3 shadow-sm transition-all duration-300 ease-in-out hover:shadow-md`}
       style={style}
     >
       <div className="flex items-center gap-2">
