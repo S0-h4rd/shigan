@@ -195,7 +195,9 @@ export const useAppStore = create<AppStore>()(
         const interruptionTask = schedule.tasks.find(
           (t) =>
             t.status === 'completed' &&
-            schedule.interruptions.some((i) => i.newTaskId === t.id),
+            schedule.interruptions.some(
+              (i) => i.newTaskId === t.id && i.interruptedTaskId === pausedTaskId,
+            ),
         )
         if (!interruptionTask || !interruptionTask.actualDurationMinutes) return
 
@@ -204,10 +206,14 @@ export const useAppStore = create<AppStore>()(
           pausedTaskId,
           interruptionTask,
         )
-        if (!rescheduled) return
+        if (!rescheduled) {
+          console.warn('resumeTask: reschedule returned null')
+          return
+        }
 
         const now = new Date()
-        const dayEnd = new Date(interruptedTask.scheduledStart || now)
+        const rescheduledTask = rescheduled.find((t) => t.id === pausedTaskId)
+        const dayEnd = new Date(rescheduledTask?.scheduledStart || now)
         dayEnd.setHours(23, 59, 59, 999)
 
         const updatedTasks = rescheduled.map((task) => {

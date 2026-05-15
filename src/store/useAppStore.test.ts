@@ -48,7 +48,7 @@ describe('interruptTask', () => {
 
   it('overwrites previous paused task when interrupting again', () => {
     useAppStore.getState().startTask('Task A', 30)
-    const taskAId = useAppStore.getState().activeTaskId!
+    useAppStore.getState().activeTaskId!
     useAppStore.getState().interruptTask('Interruption B', 15)
     const taskBId = useAppStore.getState().activeTaskId!
 
@@ -98,8 +98,6 @@ describe('endTask with interruption', () => {
   })
 })
 
-import { reschedule } from '@/core/reschedule'
-
 describe('resumeTask', () => {
   beforeEach(() => resetStore())
 
@@ -140,7 +138,7 @@ describe('resumeTask', () => {
     })
 
     useAppStore.getState().interruptTask('Interruption', 20)
-    const interruptionId = useAppStore.getState().activeTaskId!
+    useAppStore.getState().activeTaskId!
     useAppStore.setState({ timerStartAt: Date.now() - 20 * 60000 })
     useAppStore.getState().endTask()
 
@@ -202,5 +200,55 @@ describe('resumeTask', () => {
     expect(originalTask.status).toBe('deferred')
     expect(originalTask.scheduledStart).toBeUndefined()
     expect(originalTask.scheduledEnd).toBeUndefined()
+  })
+
+  it('does nothing when there is no paused task', () => {
+    useAppStore.getState().resumeTask()
+    const state = useAppStore.getState()
+    expect(state.activeTaskId).toBeNull()
+    expect(state.pausedTaskId).toBeNull()
+  })
+
+  it('does nothing when reschedule returns null', () => {
+    useAppStore.setState({
+      schedule: {
+        date: '2026-05-14',
+        tasks: [
+          {
+            id: 'a',
+            title: 'Task',
+            plannedDurationMinutes: 30,
+            status: 'paused',
+            priority: 'medium',
+            revisionCount: 0,
+          },
+          {
+            id: 'x',
+            title: 'Interruption',
+            plannedDurationMinutes: 15,
+            status: 'completed',
+            priority: 'medium',
+            revisionCount: 0,
+          },
+        ],
+        interruptions: [
+          {
+            id: 'i1',
+            timestamp: new Date(),
+            interruptedTaskId: 'a',
+            newTaskId: 'x',
+            description: 'Interruption',
+          },
+        ],
+      },
+      activeTaskId: null,
+      pausedTaskId: 'a',
+      timerStartAt: null,
+      view: 'timeline',
+    })
+
+    useAppStore.getState().resumeTask()
+    const state = useAppStore.getState()
+    expect(state.pausedTaskId).toBe('a')
   })
 })

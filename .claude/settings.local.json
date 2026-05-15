@@ -8,7 +8,11 @@
       "Bash(npx tsc *)",
       "Bash(npx vite *)",
       "Bash(npx vitest *)",
-      "Bash(curl *)"
+      "Bash(curl *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(npm run *)",
+      "Bash(npm i *)"
     ]
   }
 }
