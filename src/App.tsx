@@ -31,7 +31,7 @@ function App() {
       <main className="py-4">
         <Timeline schedule={displaySchedule} />
       </main>
-      {activeTask || pausedTaskId ? (
+      {!!activeTask || pausedTaskId !== null ? (
         <ActiveTaskBar task={activeTask || null} />
       ) : (
         <QuickStart />

@@ -73,7 +73,7 @@ export default function ActiveTaskBar({ task }: ActiveTaskBarProps) {
               {pausedTask.title}
             </span>
             <span className="text-xs text-interruption-text/70">
-              已暂停 {formatDurationShort(pausedDurationMs)}
+              已进行 {formatDurationShort(pausedDurationMs)}
             </span>
           </div>
           <button
