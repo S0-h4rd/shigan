@@ -6,7 +6,7 @@ import QuickStart from './components/QuickStart'
 import PlanTaskPanel from './components/PlanTaskPanel'
 import EndReminderModal from './components/EndReminderModal'
 import BackfillPanel from './components/BackfillPanel'
-import { useAppStore } from './store/useAppStore'
+import { useAppStore, todayKey } from './store/useAppStore'
 import { useNow } from './hooks/useNow'
 import { useNotifications } from './hooks/useNotifications'
 import { mockSchedule } from './data/mock'
@@ -20,9 +20,32 @@ function App() {
   const endTask = useAppStore((state) => state.endTask)
   const extendTask = useAppStore((state) => state.extendTask)
   const deferTask = useAppStore((state) => state.deferTask)
+  const currentDate = useAppStore((state) => state.currentDate)
+  const setCurrentDate = useAppStore((state) => state.setCurrentDate)
+
+  const todayStr = todayKey()
+  const isToday = currentDate === todayStr
 
   const displaySchedule =
-    schedule.tasks.length > 0 ? schedule : mockSchedule
+    isToday && schedule.tasks.length === 0 ? mockSchedule : schedule
+
+  const dateLabel = useMemo(() => {
+    if (isToday) return '今天'
+    const [, m, d] = currentDate.split('-')
+    return `${parseInt(m, 10)}月${parseInt(d, 10)}日`
+  }, [currentDate, isToday])
+
+  const goPrevDay = () => {
+    const date = new Date(currentDate + 'T00:00:00')
+    date.setDate(date.getDate() - 1)
+    setCurrentDate(date.toISOString().slice(0, 10))
+  }
+
+  const goNextDay = () => {
+    const date = new Date(currentDate + 'T00:00:00')
+    date.setDate(date.getDate() + 1)
+    setCurrentDate(date.toISOString().slice(0, 10))
+  }
 
   const activeTask = useMemo(
     () => schedule.tasks.find((t) => t.id === activeTaskId),
@@ -101,7 +124,37 @@ function App() {
     <div className="min-h-screen bg-bg-base font-sans text-text-primary pb-32">
       <header className="sticky top-0 z-10 bg-bg-base/90 backdrop-blur-sm border-b border-border-light px-4 py-3">
         <div className="max-w-[480px] mx-auto flex items-center justify-between">
-          <h1 className="text-lg font-semibold text-text-primary">今天</h1>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={goPrevDay}
+              className="p-1 text-text-muted hover:text-text-secondary transition-colors"
+              aria-label="上一天"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </button>
+            <h1 className="text-lg font-semibold text-text-primary min-w-[4em] text-center">
+              {dateLabel}
+            </h1>
+            <button
+              onClick={goNextDay}
+              className="p-1 text-text-muted hover:text-text-secondary transition-colors"
+              aria-label="下一天"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </button>
+            {!isToday && (
+              <button
+                onClick={() => setCurrentDate(todayStr)}
+                className="text-xs text-text-muted hover:text-text-secondary transition-colors ml-1"
+              >
+                今天
+              </button>
+            )}
+          </div>
           <button
             onClick={toggleView}
             className="text-sm text-text-muted hover:text-text-secondary transition-colors"

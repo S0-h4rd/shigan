@@ -57,6 +57,8 @@ export interface TimeInsight {
 export type ViewMode = 'timeline' | 'report'
 
 export interface AppState {
+  currentDate: string
+  schedules: Record<string, DaySchedule>
   schedule: DaySchedule
   activeTaskId: string | null
   pausedTaskId: string | null

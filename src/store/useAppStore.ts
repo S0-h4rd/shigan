@@ -12,7 +12,7 @@ function emptySchedule(date: string): DaySchedule {
   }
 }
 
-function todayKey(): string {
+export function todayKey(): string {
   const now = new Date()
   const hour = now.getHours()
   if (hour < 4) {
@@ -79,19 +79,25 @@ interface AppStore extends AppState {
     category?: string,
   ) => void
   setView: (view: ViewMode) => void
+  setCurrentDate: (date: string) => void
 }
+
+const _today = todayKey()
+const _emptyToday = emptySchedule(_today)
 
 export const useAppStore = create<AppStore>()(
   persist(
     (set, get) => ({
-      schedule: emptySchedule(todayKey()),
+      currentDate: _today,
+      schedules: { [_today]: _emptyToday },
+      schedule: _emptyToday,
       activeTaskId: null,
       pausedTaskId: null,
       timerStartAt: null,
       view: 'timeline',
 
       startTask: (title, plannedDurationMinutes, category) => {
-        const { schedule, activeTaskId } = get()
+        const { currentDate, schedules, activeTaskId } = get()
         if (activeTaskId) return
 
         const now = new Date()
@@ -110,18 +116,22 @@ export const useAppStore = create<AppStore>()(
           category,
         }
 
+        const schedule = schedules[currentDate]
+        const newSchedule = {
+          ...schedule,
+          tasks: [...schedule.tasks, newTask],
+        }
+
         set({
-          schedule: {
-            ...schedule,
-            tasks: [...schedule.tasks, newTask],
-          },
+          schedules: { ...schedules, [currentDate]: newSchedule },
+          schedule: newSchedule,
           activeTaskId: newTask.id,
           timerStartAt: Date.now(),
         })
       },
 
       endTask: () => {
-        const { schedule, activeTaskId, pausedTaskId, timerStartAt } = get()
+        const { currentDate, schedules, activeTaskId, pausedTaskId, timerStartAt } = get()
         if (!activeTaskId || !timerStartAt) return
 
         const now = new Date()
@@ -129,6 +139,7 @@ export const useAppStore = create<AppStore>()(
           (Date.now() - timerStartAt) / 60000,
         )
 
+        const schedule = schedules[currentDate]
         const updatedTasks = schedule.tasks.map((t) => {
           if (t.id !== activeTaskId) return t
           return {
@@ -140,9 +151,11 @@ export const useAppStore = create<AppStore>()(
         })
 
         const isInterruption = pausedTaskId != null
+        const newSchedule = { ...schedule, tasks: updatedTasks }
 
         set({
-          schedule: { ...schedule, tasks: updatedTasks },
+          schedules: { ...schedules, [currentDate]: newSchedule },
+          schedule: newSchedule,
           activeTaskId: null,
           timerStartAt: null,
           pausedTaskId: isInterruption ? pausedTaskId : null,
@@ -150,11 +163,13 @@ export const useAppStore = create<AppStore>()(
       },
 
       interruptTask: (title, plannedDurationMinutes, category) => {
-        const { schedule, activeTaskId, timerStartAt } = get()
+        const { currentDate, schedules, activeTaskId, timerStartAt } = get()
         if (!activeTaskId || !timerStartAt) return
 
         const now = new Date()
         const elapsedMinutes = Math.round((Date.now() - timerStartAt) / 60000)
+
+        const schedule = schedules[currentDate]
 
         // Pause the original task
         const pausedTasks = schedule.tasks.map((t) => {
@@ -189,12 +204,15 @@ export const useAppStore = create<AppStore>()(
           description: title,
         }
 
+        const newSchedule = {
+          ...schedule,
+          tasks: [...pausedTasks, newTask],
+          interruptions: [...schedule.interruptions, interruption],
+        }
+
         set({
-          schedule: {
-            ...schedule,
-            tasks: [...pausedTasks, newTask],
-            interruptions: [...schedule.interruptions, interruption],
-          },
+          schedules: { ...schedules, [currentDate]: newSchedule },
+          schedule: newSchedule,
           activeTaskId: newTask.id,
           pausedTaskId: activeTaskId,
           timerStartAt: Date.now(),
@@ -202,9 +220,10 @@ export const useAppStore = create<AppStore>()(
       },
 
       resumeTask: () => {
-        const { schedule, pausedTaskId } = get()
+        const { currentDate, schedules, pausedTaskId } = get()
         if (!pausedTaskId) return
 
+        const schedule = schedules[currentDate]
         const interruptedTask = schedule.tasks.find((t) => t.id === pausedTaskId)
         if (!interruptedTask) return
 
@@ -255,9 +274,11 @@ export const useAppStore = create<AppStore>()(
         })
 
         const resumedTask = updatedTasks.find((t) => t.id === pausedTaskId)
+        const newSchedule = { ...schedule, tasks: updatedTasks }
 
         set({
-          schedule: { ...schedule, tasks: updatedTasks },
+          schedules: { ...schedules, [currentDate]: newSchedule },
+          schedule: newSchedule,
           activeTaskId: resumedTask?.status === 'active' ? resumedTask.id : null,
           pausedTaskId: null,
           timerStartAt: resumedTask?.status === 'active' ? Date.now() : null,
@@ -265,7 +286,8 @@ export const useAppStore = create<AppStore>()(
       },
 
       addPlannedTask: (title, plannedDurationMinutes) => {
-        const { schedule } = get()
+        const { currentDate, schedules } = get()
+        const schedule = schedules[currentDate]
         const now = new Date()
 
         let defaultStart = now
@@ -298,30 +320,37 @@ export const useAppStore = create<AppStore>()(
           revisionCount: 0,
         }
 
+        const newSchedule = {
+          ...schedule,
+          tasks: [...schedule.tasks, newTask],
+        }
+
         set({
-          schedule: {
-            ...schedule,
-            tasks: [...schedule.tasks, newTask],
-          },
+          schedules: { ...schedules, [currentDate]: newSchedule },
+          schedule: newSchedule,
         })
       },
 
       skipTask: (taskId) => {
-        const { schedule } = get()
+        const { currentDate, schedules } = get()
+        const schedule = schedules[currentDate]
         const task = schedule.tasks.find((t) => t.id === taskId)
         if (!task || task.status !== 'scheduled') return
 
         const compacted = compactSchedule(schedule.tasks, taskId)
         if (!compacted) return
 
+        const newSchedule = { ...schedule, tasks: compacted }
         set({
-          schedule: { ...schedule, tasks: compacted },
+          schedules: { ...schedules, [currentDate]: newSchedule },
+          schedule: newSchedule,
         })
       },
       activateTask: (taskId) => {
-        const { schedule, activeTaskId } = get()
+        const { currentDate, schedules, activeTaskId } = get()
         if (activeTaskId) return
 
+        const schedule = schedules[currentDate]
         const now = new Date()
         const updatedTasks = schedule.tasks.map((t) => {
           if (t.id !== taskId) return t
@@ -332,17 +361,20 @@ export const useAppStore = create<AppStore>()(
           }
         })
 
+        const newSchedule = { ...schedule, tasks: updatedTasks }
         set({
-          schedule: { ...schedule, tasks: updatedTasks },
+          schedules: { ...schedules, [currentDate]: newSchedule },
+          schedule: newSchedule,
           activeTaskId: taskId,
           timerStartAt: Date.now(),
         })
       },
 
       extendTask: (additionalMinutes) => {
-        const { schedule, activeTaskId } = get()
+        const { currentDate, schedules, activeTaskId } = get()
         if (!activeTaskId) return
 
+        const schedule = schedules[currentDate]
         const updatedTasks = schedule.tasks.map((t) => {
           if (t.id !== activeTaskId) return t
           return {
@@ -354,13 +386,18 @@ export const useAppStore = create<AppStore>()(
           }
         })
 
-        set({ schedule: { ...schedule, tasks: updatedTasks } })
+        const newSchedule = { ...schedule, tasks: updatedTasks }
+        set({
+          schedules: { ...schedules, [currentDate]: newSchedule },
+          schedule: newSchedule,
+        })
       },
 
       deferTask: () => {
-        const { schedule, activeTaskId } = get()
+        const { currentDate, schedules, activeTaskId } = get()
         if (!activeTaskId) return
 
+        const schedule = schedules[currentDate]
         const updatedTasks = schedule.tasks.map((t) => {
           if (t.id !== activeTaskId) return t
           return {
@@ -372,8 +409,10 @@ export const useAppStore = create<AppStore>()(
           }
         })
 
+        const newSchedule = { ...schedule, tasks: updatedTasks }
         set({
-          schedule: { ...schedule, tasks: updatedTasks },
+          schedules: { ...schedules, [currentDate]: newSchedule },
+          schedule: newSchedule,
           activeTaskId: null,
           timerStartAt: null,
         })
@@ -381,7 +420,8 @@ export const useAppStore = create<AppStore>()(
 
       backfillTask: (title, plannedDurationMinutes, start, end, category) => {
         if (!title.trim()) return
-        const { schedule } = get()
+        const { currentDate, schedules } = get()
+        const schedule = schedules[currentDate]
 
         const actualDurationMinutes = Math.round(
           (end.getTime() - start.getTime()) / 60000,
@@ -402,33 +442,62 @@ export const useAppStore = create<AppStore>()(
           category,
         }
 
+        const newSchedule = {
+          ...schedule,
+          tasks: [...schedule.tasks, newTask],
+        }
+
         set({
-          schedule: {
-            ...schedule,
-            tasks: [...schedule.tasks, newTask],
-          },
+          schedules: { ...schedules, [currentDate]: newSchedule },
+          schedule: newSchedule,
         })
       },
 
       setView: (view) => set({ view }),
+
+      setCurrentDate: (date) => {
+        const { schedules } = get()
+        const schedule = schedules[date] || emptySchedule(date)
+        set({ currentDate: date, schedule })
+      },
     }),
     {
       name: 'shigan-storage',
       partialize: (state) => ({
-        schedule: state.schedule,
+        currentDate: state.currentDate,
+        schedules: state.schedules,
         activeTaskId: state.activeTaskId,
         pausedTaskId: state.pausedTaskId,
         timerStartAt: state.timerStartAt,
       }),
       onRehydrateStorage: () => (state) => {
         if (!state) return
-        state.schedule = reviveDates(state.schedule)
+
+        // Migrate from old format (single schedule) to new format (schedules record)
+        if (!state.schedules && state.schedule) {
+          const date = state.schedule.date || todayKey()
+          state.schedules = { [date]: state.schedule }
+          state.currentDate = date
+        }
+
+        if (!state.currentDate) {
+          state.currentDate = todayKey()
+        }
+
+        // Revive Date objects for all stored schedules
+        for (const date of Object.keys(state.schedules)) {
+          state.schedules[date] = reviveDates(state.schedules[date])
+        }
+
+        state.schedule = state.schedules[state.currentDate] || emptySchedule(state.currentDate)
       },
     },
   ),
 )
 
 export const defaultState = {
+  currentDate: todayKey(),
+  schedules: { [todayKey()]: emptySchedule(todayKey()) },
   schedule: emptySchedule(todayKey()),
   activeTaskId: null,
   pausedTaskId: null,
