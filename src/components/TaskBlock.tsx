@@ -1,5 +1,7 @@
 import type { Task } from '@/types'
 import { formatTime } from '@/core/timer'
+import { useAppStore } from '@/store/useAppStore'
+import { useNow } from '@/hooks/useNow'
 
 interface TaskBlockProps {
   task: Task
@@ -105,9 +107,17 @@ function getTimeRange(task: Task): string {
 }
 
 export default function TaskBlock({ task, style, isInterrupt }: TaskBlockProps) {
+  const activateTask = useAppStore((state) => state.activateTask)
+  const skipTask = useAppStore((state) => state.skipTask)
+  const now = useNow(1000)
+
   const theme = getTheme(task)
   const timeRange = getTimeRange(task)
   const duration = getDurationLabel(task)
+  const isDue =
+    task.status === 'scheduled' &&
+    task.scheduledStart &&
+    now >= task.scheduledStart.getTime()
 
   const leftClass = isInterrupt ? 'left-20 right-2' : 'left-14 right-2'
 
@@ -137,6 +147,24 @@ export default function TaskBlock({ task, style, isInterrupt }: TaskBlockProps) 
           {timeRange}
           {timeRange && duration && ' · '}
           {duration}
+        </div>
+      )}
+      {isDue && (
+        <div className="mt-2 flex items-center gap-2">
+          <button
+            onClick={() => activateTask(task.id)}
+            aria-label="开始执行任务"
+            className="px-2.5 py-1 text-xs font-medium bg-active-bg text-active-text border border-active-border rounded-md hover:bg-active-border transition-colors"
+          >
+            开始执行
+          </button>
+          <button
+            onClick={() => skipTask(task.id)}
+            aria-label="跳过任务"
+            className="px-2.5 py-1 text-xs font-medium bg-bg-subtle text-text-muted border border-border-light rounded-md hover:bg-bg-muted transition-colors"
+          >
+            跳过
+          </button>
         </div>
       )}
     </div>
