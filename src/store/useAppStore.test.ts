@@ -300,3 +300,52 @@ describe('addPlannedTask', () => {
     expect(startMin === 0 || startMin === 30).toBe(true)
   })
 })
+
+describe('skipTask', () => {
+  beforeEach(() => resetStore())
+
+  it('marks task as cancelled and compacts subsequent tasks', () => {
+    const base = new Date('2026-05-15T09:00:00')
+    useAppStore.setState({
+      schedule: {
+        date: '2026-05-15',
+        tasks: [
+          {
+            id: 'a',
+            title: 'Task A',
+            plannedDurationMinutes: 30,
+            status: 'scheduled',
+            priority: 'medium',
+            revisionCount: 0,
+            scheduledStart: base,
+            scheduledEnd: new Date(base.getTime() + 30 * 60000),
+          },
+          {
+            id: 'b',
+            title: 'Task B',
+            plannedDurationMinutes: 30,
+            status: 'scheduled',
+            priority: 'medium',
+            revisionCount: 0,
+            scheduledStart: new Date(base.getTime() + 30 * 60000),
+            scheduledEnd: new Date(base.getTime() + 60 * 60000),
+          },
+        ],
+        interruptions: [],
+      },
+    })
+
+    useAppStore.getState().skipTask('a')
+    const state = useAppStore.getState()
+
+    const taskA = state.schedule.tasks.find((t) => t.id === 'a')!
+    expect(taskA.status).toBe('cancelled')
+    expect(taskA.scheduledStart).toBeUndefined()
+    expect(taskA.scheduledEnd).toBeUndefined()
+
+    const taskB = state.schedule.tasks.find((t) => t.id === 'b')!
+    expect(taskB.scheduledStart).toEqual(base)
+    expect(taskB.scheduledEnd).toEqual(new Date(base.getTime() + 30 * 60000))
+    expect(taskB.revisionCount).toBe(1)
+  })
+})

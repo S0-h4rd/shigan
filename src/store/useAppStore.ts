@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { reschedule } from '@/core/reschedule'
+import { compactSchedule } from '@/core/compactSchedule'
 import type { AppState, DaySchedule, Interruption, Task, ViewMode } from '@/types'
 
 function emptySchedule(date: string): DaySchedule {
@@ -296,7 +297,18 @@ export const useAppStore = create<AppStore>()(
         })
       },
 
-      skipTask: () => {},
+      skipTask: (taskId) => {
+        const { schedule } = get()
+        const task = schedule.tasks.find((t) => t.id === taskId)
+        if (!task || task.status !== 'scheduled') return
+
+        const compacted = compactSchedule(schedule.tasks, taskId)
+        if (!compacted) return
+
+        set({
+          schedule: { ...schedule, tasks: compacted },
+        })
+      },
       activateTask: () => {},
 
       setView: (view) => set({ view }),
