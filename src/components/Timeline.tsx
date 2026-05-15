@@ -11,6 +11,10 @@ function minutesFromMidnight(date: Date): number {
   return date.getHours() * 60 + date.getMinutes()
 }
 
+function formatTime(date: Date): string {
+  return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
+}
+
 function getTaskStyle(task: Task): React.CSSProperties {
   const start = task.scheduledStart
     ? minutesFromMidnight(task.scheduledStart)
@@ -69,9 +73,10 @@ function findBlankSlots(tasks: Task[]): BlankSlot[] {
 interface TimelineProps {
   schedule: DaySchedule
   onAddPlan: () => void
+  onBackfill?: (start: Date, end: Date) => void
 }
 
-export default function Timeline({ schedule, onAddPlan }: TimelineProps) {
+export default function Timeline({ schedule, onAddPlan, onBackfill }: TimelineProps) {
   const hours = useMemo(
     () => Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => START_HOUR + i),
     [],
@@ -133,11 +138,19 @@ export default function Timeline({ schedule, onAddPlan }: TimelineProps) {
           {blankSlots.map((slot, idx) => {
             const top = (slot.start - START_HOUR * 60) * (HOUR_HEIGHT / 60)
             const height = (slot.end - slot.start) * (HOUR_HEIGHT / 60)
+            const slotStart = new Date(`${schedule.date}T00:00:00`)
+            slotStart.setHours(Math.floor(slot.start / 60), slot.start % 60, 0, 0)
+            const slotEnd = new Date(`${schedule.date}T00:00:00`)
+            slotEnd.setHours(Math.floor(slot.end / 60), slot.end % 60, 0, 0)
+
             return (
               <div
                 key={`blank-${idx}`}
-                className="absolute left-14 right-2 rounded-md border border-dashed border-empty-border bg-empty-bg"
+                onClick={() => onBackfill?.(slotStart, slotEnd)}
+                className="absolute left-14 right-2 rounded-md border border-dashed border-empty-border bg-empty-bg cursor-pointer hover:bg-bg-subtle transition-colors"
                 style={{ top: `${top}px`, height: `${height}px` }}
+                role="button"
+                aria-label={`未记录时间段 ${formatTime(slotStart)} - ${formatTime(slotEnd)}`}
               >
                 <div className="flex items-center justify-center h-full">
                   <span className="text-xs text-empty-text">未记录</span>

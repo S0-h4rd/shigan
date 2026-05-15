@@ -5,6 +5,7 @@ import ActiveTaskBar from './components/ActiveTaskBar'
 import QuickStart from './components/QuickStart'
 import PlanTaskPanel from './components/PlanTaskPanel'
 import EndReminderModal from './components/EndReminderModal'
+import BackfillPanel from './components/BackfillPanel'
 import { useAppStore } from './store/useAppStore'
 import { useNow } from './hooks/useNow'
 import { mockSchedule } from './data/mock'
@@ -36,6 +37,7 @@ function App() {
   const [showPlanPanel, setShowPlanPanel] = useState(false)
   const [showEndModal, setShowEndModal] = useState(false)
   const [dismissedTaskId, setDismissedTaskId] = useState<string | null>(null)
+  const [backfillRange, setBackfillRange] = useState<{ start: Date; end: Date } | null>(null)
 
   useEffect(() => {
     if (remainingMs <= 0 && activeTask && activeTask.id !== dismissedTaskId) {
@@ -89,13 +91,23 @@ function App() {
       </header>
       <main className="py-4">
         {view === 'timeline' ? (
-          <Timeline schedule={displaySchedule} onAddPlan={() => setShowPlanPanel(true)} />
+          <Timeline
+            schedule={displaySchedule}
+            onAddPlan={() => setShowPlanPanel(true)}
+            onBackfill={(start, end) => setBackfillRange({ start, end })}
+          />
         ) : (
           <ReportView schedule={displaySchedule} />
         )}
       </main>
       {!!activeTask || pausedTaskId !== null ? (
         <ActiveTaskBar task={activeTask || null} />
+      ) : backfillRange ? (
+        <BackfillPanel
+          start={backfillRange.start}
+          end={backfillRange.end}
+          onClose={() => setBackfillRange(null)}
+        />
       ) : showPlanPanel ? (
         <PlanTaskPanel onClose={() => setShowPlanPanel(false)} />
       ) : (
