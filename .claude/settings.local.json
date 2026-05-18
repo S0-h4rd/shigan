@@ -12,7 +12,9 @@
       "Bash(git add *)",
       "Bash(git commit *)",
       "Bash(npm run *)",
-      "Bash(npm i *)"
+      "Bash(npm i *)",
+      "Bash(gh auth *)",
+      "Bash(git remote *)"
     ]
   }
 }

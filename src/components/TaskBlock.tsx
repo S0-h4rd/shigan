@@ -28,9 +28,9 @@ const statusTheme: Record<
     label: '进行中',
   },
   paused: {
-    bg: 'bg-interruption-bg',
-    text: 'text-interruption-text',
-    border: 'border-interruption-border',
+    bg: 'bg-interrupt-bg',
+    text: 'text-interrupt-text',
+    border: 'border-interrupt-border',
     icon: '⏸',
     label: '已暂停',
   },

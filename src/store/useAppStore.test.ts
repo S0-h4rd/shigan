@@ -1,8 +1,36 @@
 import { describe, expect, it, beforeEach } from 'vitest'
 import { useAppStore, defaultState } from './useAppStore'
+import type { DaySchedule, Task } from '@/types'
 
 function resetStore() {
   useAppStore.setState(defaultState)
+}
+
+function makeTask(overrides: Partial<Task> & Pick<Task, 'id' | 'title' | 'status'>): Task {
+  return {
+    id: overrides.id,
+    title: overrides.title,
+    status: overrides.status,
+    plannedDurationMinutes: overrides.plannedDurationMinutes ?? 30,
+    priority: overrides.priority ?? 'medium',
+    revisionCount: overrides.revisionCount ?? 0,
+    scheduledStart: overrides.scheduledStart,
+    scheduledEnd: overrides.scheduledEnd,
+    originalScheduledStart: overrides.originalScheduledStart,
+    originalScheduledEnd: overrides.originalScheduledEnd,
+    actualStart: overrides.actualStart,
+    actualEnd: overrides.actualEnd,
+    actualDurationMinutes: overrides.actualDurationMinutes,
+    category: overrides.category,
+  }
+}
+
+function makeSchedule(date: string, tasks: Task[]): DaySchedule {
+  return {
+    date,
+    tasks,
+    interruptions: [],
+  }
 }
 
 describe('interruptTask', () => {
@@ -103,33 +131,25 @@ describe('resumeTask', () => {
 
   it('resumes the paused task and triggers reschedule', () => {
     const base = new Date('2026-05-14T09:00:00')
-    const schedule = {
-      date: '2026-05-14',
-      tasks: [
-        {
-          id: 'a',
-          title: 'Original Task',
-          plannedDurationMinutes: 30,
-          status: 'active',
-          priority: 'medium',
-          revisionCount: 0,
-          scheduledStart: base,
-          scheduledEnd: new Date(base.getTime() + 30 * 60000),
-          actualStart: base,
-        },
-        {
-          id: 'b',
-          title: 'Follow-up Task',
-          plannedDurationMinutes: 30,
-          status: 'scheduled',
-          priority: 'medium',
-          revisionCount: 0,
-          scheduledStart: new Date(base.getTime() + 30 * 60000),
-          scheduledEnd: new Date(base.getTime() + 60 * 60000),
-        },
-      ],
-      interruptions: [],
-    }
+    const schedule = makeSchedule('2026-05-14', [
+      makeTask({
+        id: 'a',
+        title: 'Original Task',
+        plannedDurationMinutes: 30,
+        status: 'active',
+        scheduledStart: base,
+        scheduledEnd: new Date(base.getTime() + 30 * 60000),
+        actualStart: base,
+      }),
+      makeTask({
+        id: 'b',
+        title: 'Follow-up Task',
+        plannedDurationMinutes: 30,
+        status: 'scheduled',
+        scheduledStart: new Date(base.getTime() + 30 * 60000),
+        scheduledEnd: new Date(base.getTime() + 60 * 60000),
+      }),
+    ])
     useAppStore.setState({
       currentDate: '2026-05-14',
       schedules: { '2026-05-14': schedule },
@@ -169,23 +189,17 @@ describe('resumeTask', () => {
 
   it('marks task as deferred when reschedule pushes past midnight', () => {
     const late = new Date('2026-05-14T23:50:00')
-    const schedule = {
-      date: '2026-05-14',
-      tasks: [
-        {
-          id: 'a',
-          title: 'Late Task',
-          plannedDurationMinutes: 10,
-          status: 'active',
-          priority: 'medium',
-          revisionCount: 0,
-          scheduledStart: late,
-          scheduledEnd: new Date(late.getTime() + 10 * 60000),
-          actualStart: late,
-        },
-      ],
-      interruptions: [],
-    }
+    const schedule = makeSchedule('2026-05-14', [
+      makeTask({
+        id: 'a',
+        title: 'Late Task',
+        plannedDurationMinutes: 10,
+        status: 'active',
+        scheduledStart: late,
+        scheduledEnd: new Date(late.getTime() + 10 * 60000),
+        actualStart: late,
+      }),
+    ])
     useAppStore.setState({
       currentDate: '2026-05-14',
       schedules: { '2026-05-14': schedule },
@@ -263,22 +277,16 @@ describe('addPlannedTask', () => {
   beforeEach(() => resetStore())
 
   it('appends a planned task to the end of the timeline', () => {
-    const schedule = {
-      date: '2026-05-15',
-      tasks: [
-        {
-          id: 'a',
-          title: 'Existing',
-          plannedDurationMinutes: 30,
-          status: 'scheduled',
-          priority: 'medium',
-          revisionCount: 0,
-          scheduledStart: new Date('2026-05-15T09:00:00'),
-          scheduledEnd: new Date('2026-05-15T09:30:00'),
-        },
-      ],
-      interruptions: [],
-    }
+    const schedule = makeSchedule('2026-05-15', [
+      makeTask({
+        id: 'a',
+        title: 'Existing',
+        plannedDurationMinutes: 30,
+        status: 'scheduled',
+        scheduledStart: new Date('2026-05-15T09:00:00'),
+        scheduledEnd: new Date('2026-05-15T09:30:00'),
+      }),
+    ])
     useAppStore.setState({
       currentDate: '2026-05-15',
       schedules: { '2026-05-15': schedule },
@@ -308,6 +316,16 @@ describe('addPlannedTask', () => {
     const startMin = task.scheduledStart!.getMinutes()
     expect(startMin === 0 || startMin === 30).toBe(true)
   })
+
+  it('creates a schedule when adding a task on a new date', () => {
+    useAppStore.getState().setCurrentDate('2026-05-20')
+    useAppStore.getState().addPlannedTask('New Day Task', 30)
+
+    const state = useAppStore.getState()
+    expect(state.schedules['2026-05-20']).toBeDefined()
+    expect(state.schedule.tasks).toHaveLength(1)
+    expect(state.schedule.tasks[0].title).toBe('New Day Task')
+  })
 })
 
 describe('skipTask', () => {
@@ -315,32 +333,24 @@ describe('skipTask', () => {
 
   it('marks task as cancelled and compacts subsequent tasks', () => {
     const base = new Date('2026-05-15T09:00:00')
-    const schedule = {
-      date: '2026-05-15',
-      tasks: [
-        {
-          id: 'a',
-          title: 'Task A',
-          plannedDurationMinutes: 30,
-          status: 'scheduled',
-          priority: 'medium',
-          revisionCount: 0,
-          scheduledStart: base,
-          scheduledEnd: new Date(base.getTime() + 30 * 60000),
-        },
-        {
-          id: 'b',
-          title: 'Task B',
-          plannedDurationMinutes: 30,
-          status: 'scheduled',
-          priority: 'medium',
-          revisionCount: 0,
-          scheduledStart: new Date(base.getTime() + 30 * 60000),
-          scheduledEnd: new Date(base.getTime() + 60 * 60000),
-        },
-      ],
-      interruptions: [],
-    }
+    const schedule = makeSchedule('2026-05-15', [
+      makeTask({
+        id: 'a',
+        title: 'Task A',
+        plannedDurationMinutes: 30,
+        status: 'scheduled',
+        scheduledStart: base,
+        scheduledEnd: new Date(base.getTime() + 30 * 60000),
+      }),
+      makeTask({
+        id: 'b',
+        title: 'Task B',
+        plannedDurationMinutes: 30,
+        status: 'scheduled',
+        scheduledStart: new Date(base.getTime() + 30 * 60000),
+        scheduledEnd: new Date(base.getTime() + 60 * 60000),
+      }),
+    ])
     useAppStore.setState({
       currentDate: '2026-05-15',
       schedules: { '2026-05-15': schedule },
@@ -439,22 +449,16 @@ describe('activateTask', () => {
 
   it('activates a scheduled task and starts timer', () => {
     const base = new Date('2026-05-15T09:00:00')
-    const schedule = {
-      date: '2026-05-15',
-      tasks: [
-        {
-          id: 'a',
-          title: 'Planned Task',
-          plannedDurationMinutes: 30,
-          status: 'scheduled',
-          priority: 'medium',
-          revisionCount: 0,
-          scheduledStart: base,
-          scheduledEnd: new Date(base.getTime() + 30 * 60000),
-        },
-      ],
-      interruptions: [],
-    }
+    const schedule = makeSchedule('2026-05-15', [
+      makeTask({
+        id: 'a',
+        title: 'Planned Task',
+        plannedDurationMinutes: 30,
+        status: 'scheduled',
+        scheduledStart: base,
+        scheduledEnd: new Date(base.getTime() + 30 * 60000),
+      }),
+    ])
     useAppStore.setState({
       currentDate: '2026-05-15',
       schedules: { '2026-05-15': schedule },
@@ -479,14 +483,12 @@ describe('activateTask', () => {
       date: currentDate,
       tasks: [
         ...useAppStore.getState().schedule.tasks,
-        {
+        makeTask({
           id: 'b',
           title: 'Another',
           plannedDurationMinutes: 30,
           status: 'scheduled',
-          priority: 'medium',
-          revisionCount: 0,
-        },
+        }),
       ],
       interruptions: [],
     }

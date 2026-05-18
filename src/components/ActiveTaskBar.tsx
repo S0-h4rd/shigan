@@ -82,14 +82,14 @@ export default function ActiveTaskBar({ task }: ActiveTaskBarProps) {
       : 0
 
     return (
-      <div className="fixed bottom-0 left-0 right-0 bg-interruption-bg border-t border-interruption-border px-4 py-3 rounded-t-xl shadow-lg z-20">
+      <div className="fixed bottom-0 left-0 right-0 bg-interrupt-bg border-t border-interrupt-border px-4 py-3 rounded-t-xl shadow-lg z-20">
         <div className="max-w-[480px] mx-auto flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
-            <span aria-hidden="true" className="text-interruption-text text-xs">⏸</span>
-            <span className="text-sm font-medium text-interruption-text truncate">
+            <span aria-hidden="true" className="text-interrupt-text text-xs">⏸</span>
+            <span className="text-sm font-medium text-interrupt-text truncate">
               {pausedTask.title}
             </span>
-            <span className="text-xs text-interruption-text/70">
+            <span className="text-xs text-interrupt-text/70">
               已进行 {formatDurationShort(pausedDurationMs)}
             </span>
           </div>
@@ -109,9 +109,9 @@ export default function ActiveTaskBar({ task }: ActiveTaskBarProps) {
 
   if (isInterrupting) {
     return (
-      <div className="fixed bottom-0 left-0 right-0 bg-interruption-bg border-t border-interruption-border px-4 py-3 rounded-t-xl shadow-lg z-20">
+      <div className="fixed bottom-0 left-0 right-0 bg-interrupt-bg border-t border-interrupt-border px-4 py-3 rounded-t-xl shadow-lg z-20">
         <div className="max-w-[480px] mx-auto space-y-2">
-          <div className="text-xs text-interruption-text font-medium">
+          <div className="text-xs text-interrupt-text font-medium">
             <span aria-hidden="true">⏸</span> 当前被打断：{task.title}（已暂停）
           </div>
           <div className="flex gap-2">
@@ -121,14 +121,14 @@ export default function ActiveTaskBar({ task }: ActiveTaskBarProps) {
               onChange={(e) => setInterruptTitle(e.target.value)}
               placeholder="发生了什么？"
               aria-label="发生了什么？"
-              className="flex-1 px-3 py-2 text-sm bg-bg-base border border-interruption-border rounded-lg focus:outline-none focus:border-interruption-text text-text-primary placeholder:text-text-muted"
+              className="flex-1 px-3 py-2 text-sm bg-bg-base border border-interrupt-border rounded-lg focus:outline-none focus:border-interrupt-text text-text-primary placeholder:text-text-muted"
               onKeyDown={handleKeyDown}
               autoFocus
             />
             <button
               onClick={handleStartInterruption}
               aria-label="开始打断任务"
-              className="shrink-0 px-4 py-2 bg-interruption-text text-bg-base text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
+              className="shrink-0 px-4 py-2 bg-interrupt-text text-bg-base text-sm font-medium rounded-lg hover:opacity-90 transition-opacity"
             >
               开始
             </button>
@@ -168,7 +168,7 @@ export default function ActiveTaskBar({ task }: ActiveTaskBarProps) {
             <button
               onClick={() => setIsInterrupting(true)}
               aria-label="有事插入"
-              className="px-3 py-2 text-interruption-text text-sm font-medium rounded-lg border border-interruption-border hover:bg-interruption-bg transition-colors"
+              className="px-3 py-2 text-interrupt-text text-sm font-medium rounded-lg border border-interrupt-border hover:bg-interrupt-bg transition-colors"
             >
               有事插入
             </button>

@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { reschedule } from '@/core/reschedule'
 import { compactSchedule } from '@/core/compactSchedule'
+import { formatDateKey } from '@/core/date'
 import type { AppState, DaySchedule, Interruption, Task, ViewMode } from '@/types'
 
 function emptySchedule(date: string): DaySchedule {
@@ -18,7 +19,7 @@ export function todayKey(): string {
   if (hour < 4) {
     now.setDate(now.getDate() - 1)
   }
-  return now.toISOString().slice(0, 10)
+  return formatDateKey(now)
 }
 
 function generateId(): string {
@@ -48,6 +49,13 @@ function reviveDates(schedule: DaySchedule): DaySchedule {
       timestamp: new Date(i.timestamp),
     })),
   }
+}
+
+function getScheduleForDate(
+  schedules: Record<string, DaySchedule>,
+  date: string,
+): DaySchedule {
+  return schedules[date] ?? emptySchedule(date)
 }
 
 interface AppStore extends AppState {
@@ -116,7 +124,7 @@ export const useAppStore = create<AppStore>()(
           category,
         }
 
-        const schedule = schedules[currentDate]
+        const schedule = getScheduleForDate(schedules, currentDate)
         const newSchedule = {
           ...schedule,
           tasks: [...schedule.tasks, newTask],
@@ -139,7 +147,7 @@ export const useAppStore = create<AppStore>()(
           (Date.now() - timerStartAt) / 60000,
         )
 
-        const schedule = schedules[currentDate]
+        const schedule = getScheduleForDate(schedules, currentDate)
         const updatedTasks = schedule.tasks.map((t) => {
           if (t.id !== activeTaskId) return t
           return {
@@ -169,7 +177,7 @@ export const useAppStore = create<AppStore>()(
         const now = new Date()
         const elapsedMinutes = Math.round((Date.now() - timerStartAt) / 60000)
 
-        const schedule = schedules[currentDate]
+        const schedule = getScheduleForDate(schedules, currentDate)
 
         // Pause the original task
         const pausedTasks = schedule.tasks.map((t) => {
@@ -223,7 +231,7 @@ export const useAppStore = create<AppStore>()(
         const { currentDate, schedules, pausedTaskId } = get()
         if (!pausedTaskId) return
 
-        const schedule = schedules[currentDate]
+        const schedule = getScheduleForDate(schedules, currentDate)
         const interruptedTask = schedule.tasks.find((t) => t.id === pausedTaskId)
         if (!interruptedTask) return
 
@@ -287,7 +295,7 @@ export const useAppStore = create<AppStore>()(
 
       addPlannedTask: (title, plannedDurationMinutes) => {
         const { currentDate, schedules } = get()
-        const schedule = schedules[currentDate]
+        const schedule = getScheduleForDate(schedules, currentDate)
         const now = new Date()
 
         let defaultStart = now
@@ -333,7 +341,7 @@ export const useAppStore = create<AppStore>()(
 
       skipTask: (taskId) => {
         const { currentDate, schedules } = get()
-        const schedule = schedules[currentDate]
+        const schedule = getScheduleForDate(schedules, currentDate)
         const task = schedule.tasks.find((t) => t.id === taskId)
         if (!task || task.status !== 'scheduled') return
 
@@ -350,7 +358,7 @@ export const useAppStore = create<AppStore>()(
         const { currentDate, schedules, activeTaskId } = get()
         if (activeTaskId) return
 
-        const schedule = schedules[currentDate]
+        const schedule = getScheduleForDate(schedules, currentDate)
         const now = new Date()
         const updatedTasks = schedule.tasks.map((t) => {
           if (t.id !== taskId) return t
@@ -374,7 +382,7 @@ export const useAppStore = create<AppStore>()(
         const { currentDate, schedules, activeTaskId } = get()
         if (!activeTaskId) return
 
-        const schedule = schedules[currentDate]
+        const schedule = getScheduleForDate(schedules, currentDate)
         const updatedTasks = schedule.tasks.map((t) => {
           if (t.id !== activeTaskId) return t
           return {
@@ -397,7 +405,7 @@ export const useAppStore = create<AppStore>()(
         const { currentDate, schedules, activeTaskId } = get()
         if (!activeTaskId) return
 
-        const schedule = schedules[currentDate]
+        const schedule = getScheduleForDate(schedules, currentDate)
         const updatedTasks = schedule.tasks.map((t) => {
           if (t.id !== activeTaskId) return t
           return {
@@ -421,7 +429,7 @@ export const useAppStore = create<AppStore>()(
       backfillTask: (title, plannedDurationMinutes, start, end, category) => {
         if (!title.trim()) return
         const { currentDate, schedules } = get()
-        const schedule = schedules[currentDate]
+        const schedule = getScheduleForDate(schedules, currentDate)
 
         const actualDurationMinutes = Math.round(
           (end.getTime() - start.getTime()) / 60000,
@@ -457,8 +465,12 @@ export const useAppStore = create<AppStore>()(
 
       setCurrentDate: (date) => {
         const { schedules } = get()
-        const schedule = schedules[date] || emptySchedule(date)
-        set({ currentDate: date, schedule })
+        const schedule = getScheduleForDate(schedules, date)
+        set({
+          currentDate: date,
+          schedules: schedules[date] ? schedules : { ...schedules, [date]: schedule },
+          schedule,
+        })
       },
     }),
     {
@@ -489,16 +501,18 @@ export const useAppStore = create<AppStore>()(
           state.schedules[date] = reviveDates(state.schedules[date])
         }
 
-        state.schedule = state.schedules[state.currentDate] || emptySchedule(state.currentDate)
+        state.schedule = getScheduleForDate(state.schedules, state.currentDate)
       },
     },
   ),
 )
 
+const defaultDate = todayKey()
+
 export const defaultState = {
-  currentDate: todayKey(),
-  schedules: { [todayKey()]: emptySchedule(todayKey()) },
-  schedule: emptySchedule(todayKey()),
+  currentDate: defaultDate,
+  schedules: { [defaultDate]: emptySchedule(defaultDate) },
+  schedule: emptySchedule(defaultDate),
   activeTaskId: null,
   pausedTaskId: null,
   timerStartAt: null,

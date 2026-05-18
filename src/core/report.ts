@@ -1,6 +1,24 @@
 import type { DaySchedule, TimeInsight } from '@/types'
 
-export function generateTimeInsight(schedule: DaySchedule): TimeInsight {
+function getActualMinutes(task: DaySchedule['tasks'][number], now: Date): number {
+  if (task.actualDurationMinutes != null) {
+    return task.actualDurationMinutes
+  }
+
+  if (task.status === 'active' && task.actualStart) {
+    return Math.max(
+      0,
+      Math.round((now.getTime() - task.actualStart.getTime()) / 60000),
+    )
+  }
+
+  return 0
+}
+
+export function generateTimeInsight(
+  schedule: DaySchedule,
+  now: Date = new Date(),
+): TimeInsight {
   let totalPlannedMinutes = 0
   let totalActualMinutes = 0
   let completedTasks = 0
@@ -15,8 +33,9 @@ export function generateTimeInsight(schedule: DaySchedule): TimeInsight {
     }
 
     if (task.status === 'completed' || task.status === 'active') {
-      if (task.actualDurationMinutes != null) {
-        totalActualMinutes += task.actualDurationMinutes
+      const actualMinutes = getActualMinutes(task, now)
+      if (actualMinutes > 0) {
+        totalActualMinutes += actualMinutes
       }
     }
 
@@ -30,9 +49,10 @@ export function generateTimeInsight(schedule: DaySchedule): TimeInsight {
 
     revisionCount += task.revisionCount
 
-    if (task.actualDurationMinutes != null) {
+    const actualMinutes = getActualMinutes(task, now)
+    if (actualMinutes > 0) {
       const category = task.category || '未分类'
-      categoryBreakdown[category] = (categoryBreakdown[category] || 0) + task.actualDurationMinutes
+      categoryBreakdown[category] = (categoryBreakdown[category] || 0) + actualMinutes
     }
   }
 
@@ -45,9 +65,9 @@ export function generateTimeInsight(schedule: DaySchedule): TimeInsight {
     if (
       interruptionTaskIds.has(task.id) &&
       task.status === 'completed' &&
-      task.actualDurationMinutes != null
+      getActualMinutes(task, now) > 0
     ) {
-      totalInterruptionMinutes += task.actualDurationMinutes
+      totalInterruptionMinutes += getActualMinutes(task, now)
     }
   }
 

@@ -9,6 +9,7 @@ import BackfillPanel from './components/BackfillPanel'
 import { useAppStore, todayKey } from './store/useAppStore'
 import { useNow } from './hooks/useNow'
 import { useNotifications } from './hooks/useNotifications'
+import { formatMonthDayLabel, shiftDateKey } from './core/date'
 import { mockSchedule } from './data/mock'
 
 function App() {
@@ -26,25 +27,32 @@ function App() {
   const todayStr = todayKey()
   const isToday = currentDate === todayStr
 
-  const displaySchedule =
-    isToday && schedule.tasks.length === 0 ? mockSchedule : schedule
+  const isShowingMockToday = isToday && schedule.tasks.length === 0
+  const displaySchedule = isShowingMockToday ? mockSchedule : schedule
 
   const dateLabel = useMemo(() => {
     if (isToday) return '今天'
-    const [, m, d] = currentDate.split('-')
-    return `${parseInt(m, 10)}月${parseInt(d, 10)}日`
+    return formatMonthDayLabel(currentDate)
   }, [currentDate, isToday])
 
+  const headerCaption = useMemo(() => {
+    if (isShowingMockToday) {
+      return '示例时间线'
+    }
+    const taskCount = schedule.tasks.length
+    const interruptionCount = schedule.interruptions.length
+    if (taskCount === 0) {
+      return '还没有开始记录'
+    }
+    return `${taskCount} 项任务 · ${interruptionCount} 次打断`
+  }, [isShowingMockToday, schedule.interruptions.length, schedule.tasks.length])
+
   const goPrevDay = () => {
-    const date = new Date(currentDate + 'T00:00:00')
-    date.setDate(date.getDate() - 1)
-    setCurrentDate(date.toISOString().slice(0, 10))
+    setCurrentDate(shiftDateKey(currentDate, -1))
   }
 
   const goNextDay = () => {
-    const date = new Date(currentDate + 'T00:00:00')
-    date.setDate(date.getDate() + 1)
-    setCurrentDate(date.toISOString().slice(0, 10))
+    setCurrentDate(shiftDateKey(currentDate, 1))
   }
 
   const activeTask = useMemo(
@@ -123,56 +131,73 @@ function App() {
   return (
     <div className="min-h-screen bg-bg-base font-sans text-text-primary pb-32">
       <header className="sticky top-0 z-10 bg-bg-base/90 backdrop-blur-sm border-b border-border-light px-4 py-3">
-        <div className="max-w-[480px] mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={goPrevDay}
-              className="p-1 text-text-muted hover:text-text-secondary transition-colors"
-              aria-label="上一天"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="15 18 9 12 15 6" />
-              </svg>
-            </button>
-            <h1 className="text-lg font-semibold text-text-primary min-w-[4em] text-center">
-              {dateLabel}
-            </h1>
-            <button
-              onClick={goNextDay}
-              className="p-1 text-text-muted hover:text-text-secondary transition-colors"
-              aria-label="下一天"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </button>
-            {!isToday && (
+        <div className="max-w-[960px] mx-auto flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
               <button
-                onClick={() => setCurrentDate(todayStr)}
-                className="text-xs text-text-muted hover:text-text-secondary transition-colors ml-1"
+                onClick={goPrevDay}
+                className="p-1 text-text-muted hover:text-text-secondary transition-colors"
+                aria-label="上一天"
               >
-                今天
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
               </button>
-            )}
+              <div className="min-w-[5.5rem]">
+                <h1 className="text-lg font-semibold text-text-primary text-center xl:text-left">
+                  {dateLabel}
+                </h1>
+                <p className="text-xs text-text-muted text-center xl:text-left">
+                  {headerCaption}
+                </p>
+              </div>
+              <button
+                onClick={goNextDay}
+                className="p-1 text-text-muted hover:text-text-secondary transition-colors"
+                aria-label="下一天"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
+              {!isToday && (
+                <button
+                  onClick={() => setCurrentDate(todayStr)}
+                  className="text-xs text-text-muted hover:text-text-secondary transition-colors ml-1"
+                >
+                  今天
+                </button>
+              )}
+            </div>
           </div>
           <button
             onClick={toggleView}
-            className="text-sm text-text-muted hover:text-text-secondary transition-colors"
+            className="text-sm text-text-muted hover:text-text-secondary transition-colors xl:hidden"
           >
             {view === 'timeline' ? '报告' : '时间线'}
           </button>
         </div>
       </header>
-      <main className="py-4">
-        {view === 'timeline' ? (
+      <main className="max-w-[960px] mx-auto px-4 py-4 xl:grid xl:grid-cols-[minmax(0,3fr)_minmax(320px,2fr)] xl:gap-6">
+        <section className={view === 'report' ? 'hidden xl:block' : ''}>
           <Timeline
             schedule={displaySchedule}
             onAddPlan={() => setShowPlanPanel(true)}
             onBackfill={(start, end) => setBackfillRange({ start, end })}
           />
-        ) : (
-          <ReportView schedule={displaySchedule} />
-        )}
+        </section>
+        <aside
+          className={
+            view === 'timeline'
+              ? 'hidden xl:block xl:sticky xl:top-24 self-start rounded-xl border border-border-light bg-bg-base'
+              : ''
+          }
+        >
+          <ReportView
+            schedule={displaySchedule}
+            variant={view === 'timeline' ? 'panel' : 'full'}
+          />
+        </aside>
       </main>
       {!!activeTask || pausedTaskId !== null ? (
         <ActiveTaskBar task={activeTask || null} />

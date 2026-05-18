@@ -49,7 +49,7 @@ export default function PlanTaskPanel({ onClose }: PlanTaskPanelProps) {
           <button
             onClick={handleSubmit}
             aria-label="添加计划任务"
-            className="shrink-0 px-4 py-2 bg-scheduled-bg text-scheduled-text text-sm font-medium rounded-lg border border-scheduled-border hover:bg-scheduled-border transition-colors"
+            className="shrink-0 px-4 py-2 bg-plan-bg text-plan-text text-sm font-medium rounded-lg border border-plan-border hover:bg-plan-border transition-colors"
           >
             添加
           </button>
@@ -69,7 +69,7 @@ export default function PlanTaskPanel({ onClose }: PlanTaskPanelProps) {
               aria-pressed={duration === d.value}
               className={`px-3 py-1.5 text-xs rounded-full border transition-colors ${
                 duration === d.value
-                  ? 'bg-scheduled-bg text-scheduled-text border-scheduled-border'
+                  ? 'bg-plan-bg text-plan-text border-plan-border'
                   : 'bg-bg-subtle text-text-secondary border-border-light hover:bg-bg-muted'
               }`}
             >

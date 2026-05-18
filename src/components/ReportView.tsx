@@ -3,7 +3,6 @@ import type { DaySchedule, Task } from '@/types'
 import { generateTimeInsight } from '@/core/report'
 import ExportButton from './ExportButton'
 
-const HOUR_HEIGHT = 80
 const START_HOUR = 6
 const END_HOUR = 23
 
@@ -62,9 +61,13 @@ function formatMinutes(minutes: number): string {
 
 interface ReportViewProps {
   schedule: DaySchedule
+  variant?: 'full' | 'panel'
 }
 
-export default function ReportView({ schedule }: ReportViewProps) {
+export default function ReportView({
+  schedule,
+  variant = 'full',
+}: ReportViewProps) {
   const insight = useMemo(() => generateTimeInsight(schedule), [schedule])
 
   const blankMinutes = useMemo(() => {
@@ -160,17 +163,21 @@ export default function ReportView({ schedule }: ReportViewProps) {
   const remainingWidth =
     totalTasks > 0 ? (remainingTasks / totalTasks) * 100 : 0
 
+  const containerClass =
+    variant === 'panel'
+      ? 'w-full max-w-none px-5 py-5 space-y-5'
+      : 'w-full max-w-[480px] mx-auto px-4 py-4 space-y-5'
+
   return (
-    <div className="w-full max-w-[480px] mx-auto px-4 py-4 space-y-5">
-      {/* Date title */}
+    <div className={containerClass}>
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-medium text-text-primary text-center flex-1">
           {schedule.date}
         </h2>
-        <ExportButton schedule={schedule} />
+        <div className="shrink-0">
+          <ExportButton schedule={schedule} />
+        </div>
       </div>
-
-      {/* Metric cards 2x2 grid */}
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-bg-subtle border border-border-light rounded-lg px-3 py-3">
           <p className="text-xs text-text-muted">计划时长</p>
@@ -197,8 +204,6 @@ export default function ReportView({ schedule }: ReportViewProps) {
           </p>
         </div>
       </div>
-
-      {/* Completion rate progress bar */}
       <div>
         <div className="h-4 rounded-full bg-bg-muted overflow-hidden flex">
           {completedWidth > 0 && (
@@ -225,8 +230,6 @@ export default function ReportView({ schedule }: ReportViewProps) {
           {remainingTasks} 项进行中
         </p>
       </div>
-
-      {/* Category breakdown */}
       {categoryEntries.length > 0 && (
         <div className="space-y-2">
           {categoryEntries.map(({ label, value, maxValue }) => (
@@ -236,7 +239,7 @@ export default function ReportView({ schedule }: ReportViewProps) {
               </span>
               <div className="flex-1 h-2 rounded-full bg-bg-muted overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-scheduled-text"
+                  className="h-full rounded-full bg-plan-text"
                   style={{
                     width: maxValue > 0 ? `${(value / maxValue) * 100}%` : '0%',
                   }}
@@ -249,13 +252,9 @@ export default function ReportView({ schedule }: ReportViewProps) {
           ))}
         </div>
       )}
-
-      {/* Insight text */}
       {insightText && (
         <p className="text-sm text-text-secondary">{insightText}</p>
       )}
-
-      {/* Interruption sources */}
       {interruptionSources.length > 0 && (
         <div>
           <p className="text-sm font-medium text-text-secondary mb-2">

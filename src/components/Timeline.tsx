@@ -102,14 +102,14 @@ export default function Timeline({ schedule, onAddPlan, onBackfill }: TimelinePr
   )
 
   return (
-    <div className="relative w-full max-w-[480px] mx-auto">
+    <div className="relative w-full max-w-[480px] mx-auto xl:max-w-none">
       <div className="flex items-center justify-between px-4 py-2">
         <span className="text-sm font-medium text-text-secondary">
-          今日时间线
+          {schedule.date === '2026-05-13' ? '今日时间线' : '时间线'}
         </span>
         <button
           onClick={onAddPlan}
-          className="px-3 py-1.5 text-xs font-medium text-scheduled-text border border-scheduled-border rounded-full hover:bg-scheduled-bg transition-colors"
+          className="px-3 py-1.5 text-xs font-medium text-plan-text border border-plan-border rounded-full hover:bg-plan-bg transition-colors"
         >
           + 添加计划
         </button>

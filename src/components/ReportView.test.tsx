@@ -84,4 +84,34 @@ describe('ReportView', () => {
     expect(screen.getByText('紧急Bug')).toBeInTheDocument()
     expect(screen.getByText('1次 · 15分钟')).toBeInTheDocument()
   })
+
+  it('counts active task elapsed time in metrics', () => {
+    const start = new Date('2026-05-15T10:00:00')
+    const end = new Date('2026-05-15T10:30:00')
+    const schedule = makeSchedule({
+      tasks: [
+        makeTask({
+          id: 'a',
+          title: 'Deep Work',
+          status: 'completed',
+          plannedDurationMinutes: 30,
+          actualDurationMinutes: 30,
+          actualStart: start,
+          actualEnd: end,
+          category: '深度工作',
+        }),
+        makeTask({
+          id: 'b',
+          title: 'Still Running',
+          status: 'active',
+          plannedDurationMinutes: 60,
+          actualStart: new Date('2026-05-15T11:00:00'),
+          category: '深度工作',
+        }),
+      ],
+    })
+
+    render(<ReportView schedule={schedule} />)
+    expect(screen.getByText('计划时长')).toBeInTheDocument()
+  })
 })

@@ -50,15 +50,26 @@
 | 功能 | 说明 |
 |------|------|
 | **快捷预设** | 常见临时任务一键开始（上厕所、喝水、刷手机、休息），不用打字。 |
-| **事后补录** | 发现刚才忘了记，直接在时间线空白处点击，回填一段时间。 |
-| **本地存储** | 数据存在浏览器本地，刷新不丢，关掉电脑明天打开还在。每 30 秒自动保存。 |
+| **事后补录** | 发现刚才忘了记，直接在时间线空白处点击，回填一段时间。 ✅ V2 已实现 |
+| **本地存储** | 数据存在浏览器本地，刷新不丢，关掉电脑明天打开还在。Zustand persist 自动保存。 |
 | **任务预估时长** | 每个任务（包括临时任务）必须有预估时长，用于重排算法。提供快捷选项：5分钟、15分钟、30分钟、1小时、不确定。 |
 
-### 4.3 不做（v2 及以后）
+### 4.3 V2 已完成的功能
+
+| 功能 | 说明 |
+|------|------|
+| **事后补录** | 在时间线空白处点击，回填已完成任务。 |
+| **浏览器通知** | Web Notifications API，60s tag 去重，结束提醒 + 5 分钟预警。 |
+| **数据导出** | 支持 JSON / CSV 格式导出当日数据。 |
+| **历史日期查看** | Store 重构为多日期结构，支持 prev / today / next 导航。 |
+| **PWA** | 可安装为桌面/移动应用，离线可用。 |
+| **空状态设计** | 首次使用、无计划日、全部空白等场景均有引导提示。 |
+| **键盘快捷键** | 空格键结束任务，Escape 取消弹窗。 |
+
+### 4.4 不做（未来版本）
 
 - 日历同步（Google/Outlook）
 - 周/月视图
-- 数据导出
 - 多设备同步
 - 账号登录
 - 团队协作
@@ -122,6 +133,17 @@ type DaySchedule = {
   date: string;                    // YYYY-MM-DD
   tasks: Task[];
   interruptions: Interruption[];
+};
+
+// 全局应用状态
+type AppState = {
+  currentDate: string;             // 当前查看的日期 key
+  schedules: Record<string, DaySchedule>;  // 多日期日程（V2 重构）
+  schedule: DaySchedule;           // 当前日期日程（派生）
+  activeTaskId: string | null;
+  pausedTaskId: string | null;
+  timerStartAt: number | null;     // Date.now() 时间戳
+  view: 'timeline' | 'report';
 };
 
 // 历史洞察
@@ -206,10 +228,10 @@ type TimeInsight = {
 | 样式 | Tailwind CSS |
 | 状态管理 | Zustand |
 | 存储 | LocalStorage / IndexedDB（本地优先） |
-| 计时器 | Web Worker（后台计时准确，不用 setInterval 累加） |
-| 通知 | Web Notifications API |
-| 打包 | Vite |
-| 部署 | PWA（可安装、离线可用） |
+| 计时器 | `Date.now()` 差值（无 setInterval 累加，UI 刷新用 `useNow` hook） |
+| 通知 | Web Notifications API（V2 实现） |
+| 打包 | Vite 8 + `vite-plugin-pwa` |
+| 部署 | PWA（V2 实现，可安装、离线可用） |
 
 **为什么不做后端？**
 - 本质是单人工具
@@ -221,7 +243,7 @@ type TimeInsight = {
 
 ## 10. 版本规划
 
-### v1（MVP）—— 2-3 天
+### v1（MVP）—— 已完成 ✅
 目标：自己能每天用起来
 - 时间线视图
 - 快速记录（开始/结束）
@@ -230,12 +252,25 @@ type TimeInsight = {
 - 结束提醒
 - 今日报告
 - 本地存储
+- 快捷预设
 
-### v2 —— 视 v1 反馈
+### v2 —— 已完成 ✅
+- 事后补录
+- 浏览器通知
+- 数据导出（JSON / CSV）
+- 历史日期查看
+- PWA 配置
+- 空状态设计
+- 键盘快捷键
+
+### v3 —— 未来规划
+- 深色模式（DESIGN.md 已设计完整 dark palette）
+- 数据导入（与导出配对，支持 JSON 文件上传恢复）
+- 任务分类标签 UI
+- 多日趋势报告（跨日期统计）
+- 快捷预设自定义
 - 周视图
 - 日历同步
-- 数据导出
-- 更智能的重排策略（基于历史数据学习）
 - 多设备同步
 
 ---
@@ -255,10 +290,11 @@ type TimeInsight = {
 
 ---
 
-## 12. 开发顺序
+## 12. 开发顺序（实际执行）
 
 按依赖关系，不是按功能模块：
 
+**V1 阶段：**
 1. 底层数据模型 + LocalStorage
 2. 时间线渲染（静态数据）
 3. 计时器引擎（开始/结束/暂停）
@@ -267,17 +303,26 @@ type TimeInsight = {
 6. 计划任务 builder
 7. 今日报告
 
+**V2 阶段：**
+8. Store 重构为多日期 `schedules` + 历史日期导航
+9. 事后补录（BackfillPanel + Timeline 点击集成）
+10. 浏览器通知（useNotifications hook）
+11. 数据导出（ExportButton JSON/CSV）
+12. PWA 配置（vite-plugin-pwa）
+13. 空状态 + 键盘快捷键
+
 ---
 
-## 13. 下一步行动
+## 13. 下一步行动（V3 候选）
 
-1. 锁定数据模型（见第 6 节）
-2. 画出状态机 ASCII 图（写在代码注释里）
-3. 写 3 个重排测试用例：正常打断 / 临时任务无预估 / 后推跨天
-4. 搭建技术骨架：Vite + React + Tailwind + Zustand
+1. 深色模式（DESIGN.md 已设计完整 dark palette）
+2. 数据导入（与导出配对，支持 JSON 文件上传恢复）
+3. 任务分类标签 UI（store 已有 `category` 字段，前端利用率低）
+4. 多日趋势报告（跨日期统计，不仅单日）
+5. 快捷预设自定义（QuickStart 的 6 个预设按钮目前是写死的）
 
 ---
 
-*文档版本：v1.0*
-*日期：2026-05-13*
-*状态：已锁定*
+*文档版本：v1.1*
+*日期：2026-05-18*
+*状态：V1 + V2 已完成，V3 规划中*
