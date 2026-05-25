@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import type { DaySchedule, Task } from '@/types'
+import { todayKey } from '@/store/useAppStore'
 import TaskBlock from './TaskBlock'
 import EmptyState from './EmptyState'
 
@@ -105,7 +106,7 @@ export default function Timeline({ schedule, onAddPlan, onBackfill }: TimelinePr
     <div className="relative w-full max-w-[480px] mx-auto xl:max-w-none">
       <div className="flex items-center justify-between px-4 py-2">
         <span className="text-sm font-medium text-text-secondary">
-          {schedule.date === '2026-05-13' ? '今日时间线' : '时间线'}
+          {schedule.date === todayKey() ? '今日时间线' : '时间线'}
         </span>
         <button
           onClick={onAddPlan}

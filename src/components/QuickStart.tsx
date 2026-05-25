@@ -12,10 +12,12 @@ const PRESETS = [
 
 export default function QuickStart() {
   const startTask = useAppStore((state) => state.startTask)
-  const activeTaskId = useAppStore((state) => state.activeTaskId)
+  const runtime = useAppStore((state) => state.runtime)
   const [customTitle, setCustomTitle] = useState('')
 
-  if (activeTaskId) return null
+  const isActive = !!runtime.activeTaskId
+
+  if (isActive) return null
 
   const handlePreset = (label: string, duration: number, category: string) => {
     startTask(label, duration, category)

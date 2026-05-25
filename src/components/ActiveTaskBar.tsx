@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Task } from '@/types'
 import { formatDurationShort } from '@/core/timer'
-import { useAppStore } from '@/store/useAppStore'
+import { useAppStore, getPausedTask } from '@/store/useAppStore'
 import { useNow } from '@/hooks/useNow'
 
 const DEFAULT_INTERRUPTION_DURATION = 30
@@ -13,15 +13,10 @@ interface ActiveTaskBarProps {
 export default function ActiveTaskBar({ task }: ActiveTaskBarProps) {
   const endTask = useAppStore((state) => state.endTask)
   const interruptTask = useAppStore((state) => state.interruptTask)
-  const pausedTaskId = useAppStore((state) => state.pausedTaskId)
+  const _state = useAppStore()
+  const pausedTask = getPausedTask(_state)
   const resumeTask = useAppStore((state) => state.resumeTask)
-  const schedule = useAppStore((state) => state.schedule)
   const now = useNow(1000)
-
-  const pausedTask = useMemo(
-    () => schedule.tasks.find((t) => t.id === pausedTaskId) ?? null,
-    [schedule.tasks, pausedTaskId],
-  )
 
   const [isInterrupting, setIsInterrupting] = useState(false)
   const [interruptTitle, setInterruptTitle] = useState('')

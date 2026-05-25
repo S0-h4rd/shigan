@@ -1,6 +1,6 @@
 import type { DaySchedule, Task } from '@/types'
 
-const today = '2026-05-13'
+const today = new Date().toISOString().slice(0, 10)
 
 function t(hour: number, minute: number = 0): Date {
   return new Date(`${today}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`)

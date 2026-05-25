@@ -17,8 +17,8 @@ describe('App view toggle', () => {
     const reportButton = screen.getByText('报告')
     fireEvent.click(reportButton)
 
-    // Should show report view (mock schedule has tasks, so report renders with date header)
-    expect(screen.getByText('2026-05-13')).toBeInTheDocument()
+    // Should show report view empty state
+    expect(screen.getByText('今天还没有记录')).toBeInTheDocument()
 
     // Click again to go back
     fireEvent.click(screen.getByText('时间线'))

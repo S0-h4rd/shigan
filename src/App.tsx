@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useState, useCallback } from 'react'
 import Timeline from './components/Timeline'
 import ReportView from './components/ReportView'
 import ActiveTaskBar from './components/ActiveTaskBar'
@@ -7,16 +7,17 @@ import PlanTaskPanel from './components/PlanTaskPanel'
 import EndReminderModal from './components/EndReminderModal'
 import BackfillPanel from './components/BackfillPanel'
 import { useAppStore, todayKey } from './store/useAppStore'
-import { useNow } from './hooks/useNow'
-import { useNotifications } from './hooks/useNotifications'
+import { getActiveTask, getPausedTask } from './store/useAppStore'
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
+import { useEndReminder } from './hooks/useEndReminder'
 import { formatMonthDayLabel, shiftDateKey } from './core/date'
-import { mockSchedule } from './data/mock'
 
 function App() {
   const schedule = useAppStore((state) => state.schedule)
-  const activeTaskId = useAppStore((state) => state.activeTaskId)
-  const pausedTaskId = useAppStore((state) => state.pausedTaskId)
   const view = useAppStore((state) => state.view)
+  const _state = useAppStore()
+  const activeTask = getActiveTask(_state)
+  const pausedTask = getPausedTask(_state)
   const setView = useAppStore((state) => state.setView)
   const endTask = useAppStore((state) => state.endTask)
   const extendTask = useAppStore((state) => state.extendTask)
@@ -27,102 +28,32 @@ function App() {
   const todayStr = todayKey()
   const isToday = currentDate === todayStr
 
-  const isShowingMockToday = isToday && schedule.tasks.length === 0
-  const displaySchedule = isShowingMockToday ? mockSchedule : schedule
+  const dateLabel = isToday ? '今天' : formatMonthDayLabel(currentDate)
 
-  const dateLabel = useMemo(() => {
-    if (isToday) return '今天'
-    return formatMonthDayLabel(currentDate)
-  }, [currentDate, isToday])
-
-  const headerCaption = useMemo(() => {
-    if (isShowingMockToday) {
-      return '示例时间线'
-    }
-    const taskCount = schedule.tasks.length
-    const interruptionCount = schedule.interruptions.length
-    if (taskCount === 0) {
-      return '还没有开始记录'
-    }
-    return `${taskCount} 项任务 · ${interruptionCount} 次打断`
-  }, [isShowingMockToday, schedule.interruptions.length, schedule.tasks.length])
-
-  const goPrevDay = () => {
-    setCurrentDate(shiftDateKey(currentDate, -1))
-  }
-
-  const goNextDay = () => {
-    setCurrentDate(shiftDateKey(currentDate, 1))
-  }
-
-  const activeTask = useMemo(
-    () => schedule.tasks.find((t) => t.id === activeTaskId),
-    [schedule.tasks, activeTaskId],
-  )
-
-  const now = useNow(1000)
-  const remainingMs = useMemo(() => {
-    if (!activeTask?.scheduledEnd) return Infinity
-    return activeTask.scheduledEnd.getTime() - now
-  }, [activeTask?.scheduledEnd, now])
+  const taskCount = schedule.tasks.length
+  const interruptionCount = schedule.interruptions.length
+  const headerCaption =
+    taskCount === 0
+      ? '还没有开始记录'
+      : `${taskCount} 项任务 · ${interruptionCount} 次打断`
 
   const [showPlanPanel, setShowPlanPanel] = useState(false)
-  const [showEndModal, setShowEndModal] = useState(false)
-  const [dismissedTaskId, setDismissedTaskId] = useState<string | null>(null)
-  const [backfillRange, setBackfillRange] = useState<{ start: Date; end: Date } | null>(null)
+  const [backfillRange, setBackfillRange] = useState<{
+    start: Date
+    end: Date
+  } | null>(null)
 
-  const { notify, resetTag } = useNotifications()
+  const {
+    isOpen: showEndModal,
+    onDismiss,
+    reset,
+  } = useEndReminder(activeTask)
 
-  useEffect(() => {
-    if (remainingMs <= 0 && activeTask && activeTask.id !== dismissedTaskId) {
-      setShowEndModal(true)
-      notify('时间到了', `任务 "${activeTask.title}" 计划时间已结束`, `end-${activeTask.id}`)
-    }
-  }, [remainingMs, activeTask, dismissedTaskId, notify])
-
-  useEffect(() => {
-    if (
-      remainingMs > 0 &&
-      remainingMs <= 5 * 60 * 1000 &&
-      activeTask
-    ) {
-      notify('即将结束', `任务 "${activeTask.title}" 还剩 5 分钟`, `warning-${activeTask.id}`)
-    }
-  }, [remainingMs, activeTask, notify])
-
-  useEffect(() => {
-    setDismissedTaskId(null)
-  }, [activeTaskId])
-
-  useEffect(() => {
-    if (activeTaskId) {
-      resetTag(`end-${activeTaskId}`)
-      resetTag(`warning-${activeTaskId}`)
-    }
-  }, [activeTaskId, resetTag])
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement
-      if (
-        target.tagName === 'INPUT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.isContentEditable
-      ) {
-        return
-      }
-
-      if (e.key === ' ' || e.code === 'Space') {
-        e.preventDefault()
-        if (activeTask) {
-          endTask()
-        }
-      }
-    }
-
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
+  const handleSpace = useCallback(() => {
+    if (activeTask) endTask()
   }, [activeTask, endTask])
+
+  useKeyboardShortcuts(handleSpace)
 
   const toggleView = () => {
     setView(view === 'timeline' ? 'report' : 'timeline')
@@ -135,11 +66,22 @@ function App() {
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <button
-                onClick={goPrevDay}
+                onClick={() =>
+                  setCurrentDate(shiftDateKey(currentDate, -1))
+                }
                 className="p-1 text-text-muted hover:text-text-secondary transition-colors"
                 aria-label="上一天"
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
                   <polyline points="15 18 9 12 15 6" />
                 </svg>
               </button>
@@ -152,11 +94,22 @@ function App() {
                 </p>
               </div>
               <button
-                onClick={goNextDay}
+                onClick={() =>
+                  setCurrentDate(shiftDateKey(currentDate, 1))
+                }
                 className="p-1 text-text-muted hover:text-text-secondary transition-colors"
                 aria-label="下一天"
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
               </button>
@@ -178,12 +131,17 @@ function App() {
           </button>
         </div>
       </header>
+
       <main className="max-w-[960px] mx-auto px-4 py-4 xl:grid xl:grid-cols-[minmax(0,3fr)_minmax(320px,2fr)] xl:gap-6">
-        <section className={view === 'report' ? 'hidden xl:block' : ''}>
+        <section
+          className={view === 'report' ? 'hidden xl:block' : ''}
+        >
           <Timeline
-            schedule={displaySchedule}
+            schedule={schedule}
             onAddPlan={() => setShowPlanPanel(true)}
-            onBackfill={(start, end) => setBackfillRange({ start, end })}
+            onBackfill={(start, end) =>
+              setBackfillRange({ start, end })
+            }
           />
         </section>
         <aside
@@ -194,44 +152,41 @@ function App() {
           }
         >
           <ReportView
-            schedule={displaySchedule}
+            schedule={schedule}
             variant={view === 'timeline' ? 'panel' : 'full'}
           />
         </aside>
       </main>
-      {!!activeTask || pausedTaskId !== null ? (
-        <ActiveTaskBar task={activeTask || null} />
+
+      {showPlanPanel ? (
+        <PlanTaskPanel onClose={() => setShowPlanPanel(false)} />
       ) : backfillRange ? (
         <BackfillPanel
           start={backfillRange.start}
           end={backfillRange.end}
           onClose={() => setBackfillRange(null)}
         />
-      ) : showPlanPanel ? (
-        <PlanTaskPanel onClose={() => setShowPlanPanel(false)} />
+      ) : activeTask || pausedTask ? (
+        <ActiveTaskBar task={activeTask} />
       ) : (
         <QuickStart />
       )}
+
       <EndReminderModal
-        task={activeTask || null}
+        task={activeTask}
         isOpen={showEndModal}
-        onClose={() => {
-          setShowEndModal(false)
-          if (activeTask) {
-            setDismissedTaskId(activeTask.id)
-          }
-        }}
+        onClose={onDismiss}
         onEnd={() => {
           endTask()
-          setDismissedTaskId(null)
+          reset()
         }}
         onExtend={() => {
           extendTask(10)
-          setDismissedTaskId(null)
+          reset()
         }}
         onDefer={() => {
           deferTask()
-          setDismissedTaskId(null)
+          reset()
         }}
       />
     </div>

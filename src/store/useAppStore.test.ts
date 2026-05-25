@@ -1,12 +1,23 @@
 import { describe, expect, it, beforeEach } from 'vitest'
-import { useAppStore, defaultState } from './useAppStore'
+import { useAppStore, defaultState, getSchedule } from './useAppStore'
+import type { AppStore } from './useAppStore'
 import type { DaySchedule, Task } from '@/types'
 
 function resetStore() {
   useAppStore.setState(defaultState)
 }
 
-function makeTask(overrides: Partial<Task> & Pick<Task, 'id' | 'title' | 'status'>): Task {
+function syncedSetState(partial: Partial<AppStore> | ((state: AppStore) => Partial<AppStore>)) {
+  const state = useAppStore.getState()
+  const next = typeof partial === 'function' ? partial(state) : partial
+  const nextSchedules = next.schedules ?? state.schedules
+  const nextDate = next.currentDate ?? state.currentDate
+  useAppStore.setState({ ...next, schedule: getSchedule(nextSchedules, nextDate) } as Partial<AppStore>)
+}
+
+function makeTask(
+  overrides: Partial<Task> & Pick<Task, 'id' | 'title' | 'status'>,
+): Task {
   return {
     id: overrides.id,
     title: overrides.title,
@@ -39,55 +50,66 @@ describe('interruptTask', () => {
   it('pauses the active task and starts a new interruption task', () => {
     useAppStore.getState().startTask('Original Task', 30)
     const state1 = useAppStore.getState()
-    const originalId = state1.activeTaskId!
-    expect(state1.pausedTaskId).toBeNull()
+    const originalId = state1.runtime.activeTaskId!
+    expect(state1.runtime.pausedTaskId).toBeNull()
 
-    const timerStart = state1.timerStartAt!
-    useAppStore.setState({ timerStartAt: timerStart - 10 * 60000 })
+    const timerStart = state1.runtime.startedAt!
+    syncedSetState({
+      runtime: { ...state1.runtime, startedAt: timerStart - 10 * 60000 },
+    })
 
     useAppStore.getState().interruptTask('Urgent Bug', 15)
     const state2 = useAppStore.getState()
 
-    expect(state2.pausedTaskId).toBe(originalId)
-    expect(state2.activeTaskId).not.toBe(originalId)
-    expect(state2.activeTaskId).not.toBeNull()
+    expect(state2.runtime.pausedTaskId).toBe(originalId)
+    expect(state2.runtime.activeTaskId).not.toBe(originalId)
+    expect(state2.runtime.activeTaskId).not.toBeNull()
 
-    const originalTask = state2.schedule.tasks.find((t) => t.id === originalId)!
+    const originalTask = state2.schedule.tasks.find(
+      (t) => t.id === originalId,
+    )!
     expect(originalTask.status).toBe('paused')
     expect(originalTask.actualDurationMinutes).toBe(10)
 
-    const newTask = state2.schedule.tasks.find((t) => t.id === state2.activeTaskId!)!
+    const newTask = state2.schedule.tasks.find(
+      (t) => t.id === state2.runtime.activeTaskId!,
+    )!
     expect(newTask.status).toBe('active')
     expect(newTask.title).toBe('Urgent Bug')
     expect(newTask.plannedDurationMinutes).toBe(15)
 
     expect(state2.schedule.interruptions.length).toBe(1)
-    expect(state2.schedule.interruptions[0].interruptedTaskId).toBe(originalId)
-    expect(state2.schedule.interruptions[0].newTaskId).toBe(state2.activeTaskId)
+    expect(state2.schedule.interruptions[0].interruptedTaskId).toBe(
+      originalId,
+    )
+    expect(state2.schedule.interruptions[0].newTaskId).toBe(
+      state2.runtime.activeTaskId,
+    )
   })
 
   it('does nothing when there is no active task', () => {
     useAppStore.getState().interruptTask('Urgent Bug', 15)
     const state = useAppStore.getState()
-    expect(state.activeTaskId).toBeNull()
-    expect(state.pausedTaskId).toBeNull()
+    expect(state.runtime.activeTaskId).toBeNull()
+    expect(state.runtime.pausedTaskId).toBeNull()
     expect(state.schedule.tasks.length).toBe(0)
   })
 
   it('overwrites previous paused task when interrupting again', () => {
     useAppStore.getState().startTask('Task A', 30)
-    useAppStore.getState().activeTaskId!
     useAppStore.getState().interruptTask('Interruption B', 15)
-    const taskBId = useAppStore.getState().activeTaskId!
+    const taskBId = useAppStore.getState().runtime.activeTaskId!
 
     // Try to interrupt again while B is active
     useAppStore.getState().interruptTask('Interruption C', 10)
     const state = useAppStore.getState()
 
     // B should be paused now, A is lost (flat model)
-    expect(state.pausedTaskId).toBe(taskBId)
-    expect(state.activeTaskId).not.toBe(taskBId)
-    expect(state.schedule.tasks.find((t) => t.id === taskBId)!.status).toBe('paused')
+    expect(state.runtime.pausedTaskId).toBe(taskBId)
+    expect(state.runtime.activeTaskId).not.toBe(taskBId)
+    expect(
+      state.schedule.tasks.find((t) => t.id === taskBId)!.status,
+    ).toBe('paused')
   })
 })
 
@@ -96,18 +118,23 @@ describe('endTask with interruption', () => {
 
   it('keeps pausedTaskId when ending an interruption task', () => {
     useAppStore.getState().startTask('Original Task', 30)
-    const originalId = useAppStore.getState().activeTaskId!
+    const originalId = useAppStore.getState().runtime.activeTaskId!
     useAppStore.getState().interruptTask('Interruption', 15)
 
-    const timerStart = useAppStore.getState().timerStartAt!
-    useAppStore.setState({ timerStartAt: timerStart - 20 * 60000 })
+    const timerStart = useAppStore.getState().runtime.startedAt!
+    syncedSetState({
+      runtime: {
+        ...useAppStore.getState().runtime,
+        startedAt: timerStart - 20 * 60000,
+      },
+    })
 
     useAppStore.getState().endTask()
     const state = useAppStore.getState()
 
-    expect(state.activeTaskId).toBeNull()
-    expect(state.pausedTaskId).toBe(originalId)
-    expect(state.timerStartAt).toBeNull()
+    expect(state.runtime.activeTaskId).toBeNull()
+    expect(state.runtime.pausedTaskId).toBe(originalId)
+    expect(state.runtime.startedAt).toBeNull()
 
     const interruptionTask = state.schedule.tasks.find(
       (t) => t.title === 'Interruption',
@@ -120,9 +147,9 @@ describe('endTask with interruption', () => {
     useAppStore.getState().startTask('Normal Task', 30)
     useAppStore.getState().endTask()
     const state = useAppStore.getState()
-    expect(state.activeTaskId).toBeNull()
-    expect(state.pausedTaskId).toBeNull()
-    expect(state.timerStartAt).toBeNull()
+    expect(state.runtime.activeTaskId).toBeNull()
+    expect(state.runtime.pausedTaskId).toBeNull()
+    expect(state.runtime.startedAt).toBeNull()
   })
 })
 
@@ -150,27 +177,34 @@ describe('resumeTask', () => {
         scheduledEnd: new Date(base.getTime() + 60 * 60000),
       }),
     ])
-    useAppStore.setState({
+    syncedSetState({
       currentDate: '2026-05-14',
       schedules: { '2026-05-14': schedule },
-      schedule,
-      activeTaskId: 'a',
-      pausedTaskId: null,
-      timerStartAt: Date.now() - 10 * 60000,
+      runtime: {
+        activeTaskId: 'a',
+        pausedTaskId: null,
+        startedAt: Date.now() - 10 * 60000,
+        pausedElapsedMinutes: null,
+        date: '2026-05-14',
+      },
       view: 'timeline',
     })
 
     useAppStore.getState().interruptTask('Interruption', 20)
-    useAppStore.getState().activeTaskId!
-    useAppStore.setState({ timerStartAt: Date.now() - 20 * 60000 })
+    syncedSetState({
+      runtime: {
+        ...useAppStore.getState().runtime,
+        startedAt: Date.now() - 20 * 60000,
+      },
+    })
     useAppStore.getState().endTask()
 
     useAppStore.getState().resumeTask()
     const state = useAppStore.getState()
 
-    expect(state.activeTaskId).toBe('a')
-    expect(state.pausedTaskId).toBeNull()
-    expect(state.timerStartAt).not.toBeNull()
+    expect(state.runtime.activeTaskId).toBe('a')
+    expect(state.runtime.pausedTaskId).toBeNull()
+    expect(state.runtime.startedAt).not.toBeNull()
 
     const originalTask = state.schedule.tasks.find((t) => t.id === 'a')!
     expect(originalTask.status).toBe('active')
@@ -200,18 +234,26 @@ describe('resumeTask', () => {
         actualStart: late,
       }),
     ])
-    useAppStore.setState({
+    syncedSetState({
       currentDate: '2026-05-14',
       schedules: { '2026-05-14': schedule },
-      schedule,
-      activeTaskId: 'a',
-      pausedTaskId: null,
-      timerStartAt: Date.now() - 5 * 60000,
+      runtime: {
+        activeTaskId: 'a',
+        pausedTaskId: null,
+        startedAt: Date.now() - 5 * 60000,
+        pausedElapsedMinutes: null,
+        date: '2026-05-14',
+      },
       view: 'timeline',
     })
 
     useAppStore.getState().interruptTask('Interruption', 15)
-    useAppStore.setState({ timerStartAt: Date.now() - 15 * 60000 })
+    syncedSetState({
+      runtime: {
+        ...useAppStore.getState().runtime,
+        startedAt: Date.now() - 15 * 60000,
+      },
+    })
     useAppStore.getState().endTask()
     useAppStore.getState().resumeTask()
 
@@ -225,51 +267,58 @@ describe('resumeTask', () => {
   it('does nothing when there is no paused task', () => {
     useAppStore.getState().resumeTask()
     const state = useAppStore.getState()
-    expect(state.activeTaskId).toBeNull()
-    expect(state.pausedTaskId).toBeNull()
+    expect(state.runtime.activeTaskId).toBeNull()
+    expect(state.runtime.pausedTaskId).toBeNull()
   })
 
   it('does nothing when reschedule returns null', () => {
-    useAppStore.setState({
-      schedule: {
-        date: '2026-05-14',
-        tasks: [
-          {
-            id: 'a',
-            title: 'Task',
-            plannedDurationMinutes: 30,
-            status: 'paused',
-            priority: 'medium',
-            revisionCount: 0,
-          },
-          {
-            id: 'x',
-            title: 'Interruption',
-            plannedDurationMinutes: 15,
-            status: 'completed',
-            priority: 'medium',
-            revisionCount: 0,
-          },
-        ],
-        interruptions: [
-          {
-            id: 'i1',
-            timestamp: new Date(),
-            interruptedTaskId: 'a',
-            newTaskId: 'x',
-            description: 'Interruption',
-          },
-        ],
+    syncedSetState({
+      currentDate: '2026-05-14',
+      schedules: {
+        '2026-05-14': {
+          date: '2026-05-14',
+          tasks: [
+            {
+              id: 'a',
+              title: 'Task',
+              plannedDurationMinutes: 30,
+              status: 'paused',
+              priority: 'medium',
+              revisionCount: 0,
+            },
+            {
+              id: 'x',
+              title: 'Interruption',
+              plannedDurationMinutes: 15,
+              status: 'completed',
+              priority: 'medium',
+              revisionCount: 0,
+            },
+          ],
+          interruptions: [
+            {
+              id: 'i1',
+              timestamp: new Date(),
+              interruptedTaskId: 'a',
+              newTaskId: 'x',
+              description: 'Interruption',
+            },
+          ],
+        },
       },
-      activeTaskId: null,
-      pausedTaskId: 'a',
-      timerStartAt: null,
+      runtime: {
+        activeTaskId: null,
+        pausedTaskId: 'a',
+        startedAt: null,
+        pausedElapsedMinutes: null,
+        date: '2026-05-14',
+      },
       view: 'timeline',
     })
 
     useAppStore.getState().resumeTask()
     const state = useAppStore.getState()
-    expect(state.pausedTaskId).toBe('a')
+    expect(state.runtime.pausedTaskId).toBe('a')
   })
 })
 
@@ -287,10 +336,9 @@ describe('addPlannedTask', () => {
         scheduledEnd: new Date('2026-05-15T09:30:00'),
       }),
     ])
-    useAppStore.setState({
+    syncedSetState({
       currentDate: '2026-05-15',
       schedules: { '2026-05-15': schedule },
-      schedule,
     })
 
     useAppStore.getState().addPlannedTask('New Task', 60)
@@ -301,20 +349,27 @@ describe('addPlannedTask', () => {
     expect(newTask.title).toBe('New Task')
     expect(newTask.status).toBe('scheduled')
     expect(newTask.plannedDurationMinutes).toBe(60)
-    expect(newTask.scheduledStart).toEqual(new Date('2026-05-15T09:30:00'))
-    expect(newTask.scheduledEnd).toEqual(new Date('2026-05-15T10:30:00'))
+    expect(newTask.scheduledStart).toEqual(
+      new Date('2026-05-15T09:30:00'),
+    )
+    expect(newTask.scheduledEnd).toEqual(
+      new Date('2026-05-15T10:30:00'),
+    )
   })
 
-  it('uses rounded current time when timeline is empty', () => {
+  it('uses current time when timeline is empty', () => {
+    const before = Date.now()
     useAppStore.getState().addPlannedTask('First Task', 30)
+    const after = Date.now()
     const state = useAppStore.getState()
 
     expect(state.schedule.tasks.length).toBe(1)
     const task = state.schedule.tasks[0]
     expect(task.status).toBe('scheduled')
     expect(task.scheduledStart).toBeDefined()
-    const startMin = task.scheduledStart!.getMinutes()
-    expect(startMin === 0 || startMin === 30).toBe(true)
+    const startTime = task.scheduledStart!.getTime()
+    expect(startTime).toBeGreaterThanOrEqual(before)
+    expect(startTime).toBeLessThanOrEqual(after)
   })
 
   it('creates a schedule when adding a task on a new date', () => {
@@ -351,10 +406,9 @@ describe('skipTask', () => {
         scheduledEnd: new Date(base.getTime() + 60 * 60000),
       }),
     ])
-    useAppStore.setState({
+    syncedSetState({
       currentDate: '2026-05-15',
       schedules: { '2026-05-15': schedule },
-      schedule,
     })
 
     useAppStore.getState().skipTask('a')
@@ -367,7 +421,9 @@ describe('skipTask', () => {
 
     const taskB = state.schedule.tasks.find((t) => t.id === 'b')!
     expect(taskB.scheduledStart).toEqual(base)
-    expect(taskB.scheduledEnd).toEqual(new Date(base.getTime() + 30 * 60000))
+    expect(taskB.scheduledEnd).toEqual(
+      new Date(base.getTime() + 30 * 60000),
+    )
     expect(taskB.revisionCount).toBe(1)
   })
 })
@@ -383,7 +439,9 @@ describe('extendTask', () => {
     useAppStore.getState().extendTask(10)
 
     const updated = useAppStore.getState().schedule.tasks[0]
-    expect(updated.scheduledEnd!.getTime()).toBe(originalEnd.getTime() + 10 * 60000)
+    expect(updated.scheduledEnd!.getTime()).toBe(
+      originalEnd.getTime() + 10 * 60000,
+    )
     expect(updated.revisionCount).toBe(1)
   })
 
@@ -406,8 +464,8 @@ describe('deferTask', () => {
     expect(updated.scheduledStart).toBeUndefined()
     expect(updated.scheduledEnd).toBeUndefined()
     expect(updated.revisionCount).toBe(1)
-    expect(useAppStore.getState().activeTaskId).toBeNull()
-    expect(useAppStore.getState().timerStartAt).toBeNull()
+    expect(useAppStore.getState().runtime.activeTaskId).toBeNull()
+    expect(useAppStore.getState().runtime.startedAt).toBeNull()
   })
 
   it('does nothing when no active task', () => {
@@ -459,17 +517,16 @@ describe('activateTask', () => {
         scheduledEnd: new Date(base.getTime() + 30 * 60000),
       }),
     ])
-    useAppStore.setState({
+    syncedSetState({
       currentDate: '2026-05-15',
       schedules: { '2026-05-15': schedule },
-      schedule,
     })
 
     useAppStore.getState().activateTask('a')
     const state = useAppStore.getState()
 
-    expect(state.activeTaskId).toBe('a')
-    expect(state.timerStartAt).not.toBeNull()
+    expect(state.runtime.activeTaskId).toBe('a')
+    expect(state.runtime.startedAt).not.toBeNull()
 
     const task = state.schedule.tasks[0]
     expect(task.status).toBe('active')
@@ -492,13 +549,15 @@ describe('activateTask', () => {
       ],
       interruptions: [],
     }
-    useAppStore.setState({
-      schedules: { ...useAppStore.getState().schedules, [currentDate]: newSchedule },
-      schedule: newSchedule,
+    syncedSetState({
+      schedules: {
+        ...useAppStore.getState().schedules,
+        [currentDate]: newSchedule,
+      },
     })
 
     useAppStore.getState().activateTask('b')
     const state = useAppStore.getState()
-    expect(state.activeTaskId).not.toBe('b')
+    expect(state.runtime.activeTaskId).not.toBe('b')
   })
 })
